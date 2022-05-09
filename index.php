@@ -1,84 +1,65 @@
 <?php
 session_start();
 
+$servername = "db5007492839.hosting-data.io";
+$dbname = "dbs6173134";
+$username = "dbu416653";
+$pw = "bamboomysqlpassword";
+
 if (isset($_POST["register"])) {
-	if (isset($_POST["emailAddress"]) && isset($_POST["password"]) && strlen($_POST["password"]) >= 8) {
+	if (isset($_POST["registerEmailAddress"]) && isset($_POST["registerPassword"]) && strlen($_POST["registerPassword"]) >= 8) {
 		$email = $password = "";
-		$email = test_input($_POST["emailAddress"]);
-		$password = test_input($_POST["password"]);
+		$email = test_input($_POST["registerEmailAddress"]);
+		$password = test_input($_POST["registerPassword"]);
 		
-		$iterations = 10000;
 		$salt = bin2hex(random_bytes(32));
-		$hash = hash_pbkdf2("sha256", $password, $salt, $iterations);
+		$hash = hash_pbkdf2("sha256", $password, $salt, 10000);
 		
-		$servername = "db686893124.db.1and1.com";
-		$dbname = "db686893124";
-		$username = "dbo686893124";
-		$pw = "*****";
-		
-		$conn = new PDO("mysql:host=$servername;dbname=$dbname", $username, $pw);
-		
-		$sql = "INSERT INTO accounts (email, password, salt) VALUES ('$email', '$hash', '$salt')";
-		$result = $conn->exec($sql);
-		
-		if ($result > 0) {
+		try {
+			$conn = new PDO("mysql:host=$servername;dbname=$dbname", $username, $pw);
+			$sql = "INSERT INTO Accounts (Email, Password, Salt) VALUES ('$email', '$hash', '$salt')";
+			$result = $conn->exec($sql);
 			$_SESSION["loggedIn"] = true;
 			$_SESSION["email"] = $email;
-			header('location: index.php');
-			exit;
-		}
-		else {
+			$conn = null;
+			refresh();
+		} catch (PDOException $e) {
 			$registerError = "Account already exists. Please login to your account.";
 		}
-		
-		$conn = null;
 	}
-}
-else if (isset($_POST["login"])) {
-	if (isset($_POST["emailAddress"]) && isset($_POST["password"])) {
+} else if (isset($_POST["login"])) {
+	if (isset($_POST["loginEmailAddress"]) && isset($_POST["loginPassword"])) {
 		$email = $password = $salt = $hashActual = $hashTry = "";
-		$email = test_input($_POST["emailAddress"]);
-		$password = test_input($_POST["password"]);
-			
-		$servername = "db686893124.db.1and1.com";
-		$dbname = "db686893124";
-		$username = "dbo686893124";
-		$pw = "*****";
+		$email = test_input($_POST["loginEmailAddress"]);
+		$password = test_input($_POST["loginPassword"]);
 		
 		$conn = new PDO("mysql:host=$servername;dbname=$dbname", $username, $pw);
 	
-		$sql = "SELECT password, salt FROM accounts WHERE email='$email'";
-		$stmt = $conn->prepare($sql);
+		$stmt = $conn->prepare("SELECT Password, Salt FROM Accounts WHERE Email='$email'");
 		$stmt->execute();
 		$row = $stmt->fetch();
 	
-		$iterations = 10000;
 		if (($row !== false) && ($stmt->rowCount() > 0)) {
-			$salt = $row["salt"];
-			$hashActual = $row["password"];
+			$hashActual = $row["Password"];
+			$salt = $row["Salt"];
 		}
-		$hashTry = hash_pbkdf2("sha256", $password, $salt, $iterations);
+		$hashTry = hash_pbkdf2("sha256", $password, $salt, 10000);
 	
 		if ($hashTry === $hashActual) {
 			$_SESSION["loggedIn"] = true;
 			$_SESSION["email"] = $email;
-			header('location: index.php');
-			exit;
-		}
-		else {
+			refresh();
+		} else {
 			$loginError = "Incorrect email or password. Please try again.";
 		}
 
 		$conn = null;
 	}
-}
-else if (isset($_POST["logout"])) {
+} else if (isset($_POST["logout"])) {
 	session_unset();
 	session_destroy();
-	header('location: index.php');
-	exit;
-}
-else if (isset($_POST["saveCompounding"])) {
+	refresh();
+} else if (isset($_POST["saveCompounding"])) {
 	if (isset($_POST["currentAge"]) && isset($_POST["targetRetirementAge"]) && isset($_POST["beginningBalance"]) && isset($_POST["annualSavings"]) && isset($_POST["annualSavingsIncreaseRate"]) && isset($_POST["expectedAnnualReturn"])) {
 		$currentAge = $targetRetirementAge = $beginningBalance = $annualSavings = $annualSavingsIncreaseRate = $expectedAnnualReturn = NULL;
 		$currentAge = test_input($_POST["currentAge"]);
@@ -88,19 +69,13 @@ else if (isset($_POST["saveCompounding"])) {
 		$annualSavingsIncreaseRate = test_input($_POST["annualSavingsIncreaseRate"]);
 		$expectedAnnualReturn = test_input($_POST["expectedAnnualReturn"]);
 		
-		$servername = "db686893124.db.1and1.com";
-		$dbname = "db686893124";
-		$username = "dbo686893124";
-		$pw = "*****";
-		
 		$conn = new PDO("mysql:host=$servername;dbname=$dbname", $username, $pw);
-		$sql = "UPDATE accounts SET currentAge=$currentAge, targetRetirementAge=$targetRetirementAge, beginningBalance=$beginningBalance, annualSavings=$annualSavings, annualSavingsIncreaseRate=$annualSavingsIncreaseRate, expectedAnnualReturn=$expectedAnnualReturn WHERE email='" . $_SESSION['email'] . "'";
+		$sql = "UPDATE Accounts SET CurrentAge=$currentAge, TargetRetirementAge=$targetRetirementAge, BeginningBalance=$beginningBalance, AnnualSavings=$annualSavings, AnnualSavingsIncreaseRate=$annualSavingsIncreaseRate, ExpectedAnnualReturn=$expectedAnnualReturn WHERE Email='" . $_SESSION['email'] . "'";
 		$conn->exec($sql);
 		
 		$conn = null;
 	}
-}
-else if (isset($_POST["saveSpending"])) {
+} else if (isset($_POST["saveSpending"])) {
 	if (isset($_POST["age"]) && isset($_POST["annualIncome"]) && isset($_POST["monthlyEssentialExpenses"]) && isset($_POST["emergencyFund"]) && isset($_POST["debt"]) && isset($_POST["contributionsThisYear"]) && isset($_POST["company401kMatch"]) && isset($_POST["iraContributionsThisYear"])) {
 		$age = $annualIncome = $monthlyEssentialExpenses = $emergencyFund = $debt = $contributionsThisYear = $company401kMatch = $iraContributionsThisYear = NULL;
 		$age = test_input($_POST["age"]);
@@ -112,13 +87,8 @@ else if (isset($_POST["saveSpending"])) {
 		$company401kMatch = test_input($_POST["company401kMatch"]);
 		$iraContributionsThisYear = test_input($_POST["iraContributionsThisYear"]);
 		
-		$servername = "db686893124.db.1and1.com";
-		$dbname = "db686893124";
-		$username = "dbo686893124";
-		$pw = "*****";
-		
 		$conn = new PDO("mysql:host=$servername;dbname=$dbname", $username, $pw);
-		$sql = "UPDATE accounts SET age=$age, annualIncome=$annualIncome, monthlyEssentialExpenses=$monthlyEssentialExpenses, emergencyFund=$emergencyFund, debt=$debt, contributionsThisYear=$contributionsThisYear, company401kMatch=$company401kMatch, iraContributionsThisYear=$iraContributionsThisYear WHERE email='" . $_SESSION['email'] . "'";
+		$sql = "UPDATE Accounts SET Age=$age, AnnualIncome=$annualIncome, MonthlyEssentialExpenses=$monthlyEssentialExpenses, EmergencyFund=$emergencyFund, Debt=$debt, ContributionsThisYear=$contributionsThisYear, Company401kMatch=$company401kMatch, IRAContributionsThisYear=$iraContributionsThisYear WHERE Email='" . $_SESSION['email'] . "'";
 		$conn->exec($sql);
 		
 		$conn = null;
@@ -126,34 +96,28 @@ else if (isset($_POST["saveSpending"])) {
 }
 
 if (isset($_SESSION["loggedIn"])) {
-	$servername = "db686893124.db.1and1.com";
-	$dbname = "db686893124";
-	$username = "dbo686893124";
-	$pw = "*****";
-		
 	$conn = new PDO("mysql:host=$servername;dbname=$dbname", $username, $pw);
 	
-	$sql = "SELECT currentAge, targetRetirementAge, beginningBalance, annualSavings, annualSavingsIncreaseRate, expectedAnnualReturn, age, annualIncome, monthlyEssentialExpenses, emergencyFund, debt, contributionsThisYear, company401kMatch, iraContributionsThisYear FROM accounts WHERE email='" . $_SESSION['email'] . "'";
-	$stmt = $conn->prepare($sql);
+	$stmt = $conn->prepare("SELECT CurrentAge, TargetRetirementAge, BeginningBalance, AnnualSavings, AnnualSavingsIncreaseRate, ExpectedAnnualReturn, Age, AnnualIncome, MonthlyEssentialExpenses, EmergencyFund, Debt, ContributionsThisYear, Company401kMatch, IRAContributionsThisYear FROM Accounts WHERE Email='" . $_SESSION['email'] . "'");
 	$stmt->execute();
 	$row = $stmt->fetch();
-	if ($row["currentAge"] != NULL && $row["targetRetirementAge"] != NULL && $row["beginningBalance"] != NULL && $row["annualSavings"] != NULL && $row["annualSavingsIncreaseRate"] != NULL && $row["expectedAnnualReturn"] != NULL) {
-		$_SESSION["currentAge"] = $row["currentAge"];
-		$_SESSION["targetRetirementAge"] = $row["targetRetirementAge"];
-		$_SESSION["beginningBalance"] = $row["beginningBalance"];
-		$_SESSION["annualSavings"] = $row["annualSavings"];
-		$_SESSION["annualSavingsIncreaseRate"] = $row["annualSavingsIncreaseRate"];
-		$_SESSION["expectedAnnualReturn"] = $row["expectedAnnualReturn"];
+	if ($row["CurrentAge"] != NULL && $row["TargetRetirementAge"] != NULL && $row["BeginningBalance"] != NULL && $row["AnnualSavings"] != NULL && $row["AnnualSavingsIncreaseRate"] != NULL && $row["ExpectedAnnualReturn"] != NULL) {
+		$_SESSION["currentAge"] = $row["CurrentAge"];
+		$_SESSION["targetRetirementAge"] = $row["TargetRetirementAge"];
+		$_SESSION["beginningBalance"] = $row["BeginningBalance"];
+		$_SESSION["annualSavings"] = $row["AnnualSavings"];
+		$_SESSION["annualSavingsIncreaseRate"] = $row["AnnualSavingsIncreaseRate"];
+		$_SESSION["expectedAnnualReturn"] = $row["ExpectedAnnualReturn"];
 	}
-	if ($row["age"] != NULL && $row["annualIncome"] != NULL && $row["monthlyEssentialExpenses"] != NULL && $row["emergencyFund"] != NULL && $row["debt"] != NULL && $row["contributionsThisYear"] != NULL && $row["company401kMatch"] != NULL && $row["iraContributionsThisYear"] != NULL) {
-		$_SESSION["age"] = $row["age"];
-		$_SESSION["annualIncome"] = $row["annualIncome"];
-		$_SESSION["monthlyEssentialExpenses"] = $row["monthlyEssentialExpenses"];
-		$_SESSION["emergencyFund"] = $row["emergencyFund"];
-		$_SESSION["debt"] = $row["debt"];
-		$_SESSION["contributionsThisYear"] = $row["contributionsThisYear"];
-		$_SESSION["company401kMatch"] = $row["company401kMatch"];
-		$_SESSION["iraContributionsThisYear"] = $row["iraContributionsThisYear"];
+	if ($row["Age"] != NULL && $row["AnnualIncome"] != NULL && $row["MonthlyEssentialExpenses"] != NULL && $row["EmergencyFund"] != NULL && $row["Debt"] != NULL && $row["ContributionsThisYear"] != NULL && $row["Company401kMatch"] != NULL && $row["IRAContributionsThisYear"] != NULL) {
+		$_SESSION["age"] = $row["Age"];
+		$_SESSION["annualIncome"] = $row["AnnualIncome"];
+		$_SESSION["monthlyEssentialExpenses"] = $row["MonthlyEssentialExpenses"];
+		$_SESSION["emergencyFund"] = $row["EmergencyFund"];
+		$_SESSION["debt"] = $row["Debt"];
+		$_SESSION["contributionsThisYear"] = $row["ContributionsThisYear"];
+		$_SESSION["company401kMatch"] = $row["Company401kMatch"];
+		$_SESSION["iraContributionsThisYear"] = $row["IRAContributionsThisYear"];
 	}
 	
 	$conn = null;
@@ -164,6 +128,11 @@ function test_input($data) {
   $data = stripslashes($data);
   $data = htmlspecialchars($data);
   return $data;
+}
+
+function refresh() {
+	header('location: index.php');
+	exit;
 }
 ?>
 <!DOCTYPE html>
@@ -181,13 +150,6 @@ function test_input($data) {
 	<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.min.js"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.6.0/Chart.bundle.js"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/rangeslider.js/2.3.0/rangeslider.min.js"></script>
-	<script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
-	<script>
-	(adsbygoogle = window.adsbygoogle || []).push({
-		google_ad_client: "ca-pub-4071292763824495",
-		enable_page_level_ads: true
-	});
-	</script>
 	<title>Bamboo - Personal Finance Utility</title>
 	<style>
 	.nav-pills > li.active > a, .nav-pills > li.active > a:hover, .nav-pills > li.active > a:focus {
@@ -207,8 +169,7 @@ function test_input($data) {
 				<button type="submit" name="logout" class="btn btn-success pull-right" style="margin-right:30px;">Logout</button>
 				</form>
 				<h5 class="pull-right" style="margin-right:20px;">' . $_SESSION["email"] . '</h5>';
-			}
-			else {
+			} else {
 				echo '<button type="button" class="btn btn-success pull-right" data-toggle="modal" data-target="#register" style="margin-right:30px;">Register</button>
 				<button type="button" class="btn btn-success pull-right" data-toggle="modal" data-target="#login" style="margin-right:20px;">Login</button>';
 			}
@@ -225,12 +186,12 @@ function test_input($data) {
 						<div class="modal-body">
 							<form id="formRegister" method="post" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]);?>">
 								<div class="form-group">
-									<label for="emailAddress">Email Address:</label>
-									<input id="emailAddress" type="email" class="form-control" name="emailAddress" required>
+									<label for="registerEmailAddress">Email Address:</label>
+									<input id="registerEmailAddress" type="email" class="form-control" name="registerEmailAddress" required>
 								</div>
 								<div class="form-group">
-									<label for="password">Password: (8 characters minimum)</label>
-									<input id="password" type="password" class="form-control" name="password" pattern=".{8,}" title="8 characters minimum" required>
+									<label for="registerPassword">Password: (8 characters minimum)</label>
+									<input id="registerPassword" type="password" class="form-control" name="registerPassword" pattern=".{8,}" title="8 characters minimum" required>
 								</div>
 							</form>
 						</div>
@@ -248,7 +209,7 @@ function test_input($data) {
 							<h4 class="modal-title">Login</h4>
 						</div>
 						<div class="modal-body">
-							<form id="formLogin" method="post" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]);?>">
+							<form id="formLogin" method="post" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>">
 								<?php
 									if (isset($registerError)) {
 										echo "<div class='alert alert-danger'>$registerError</div>";
@@ -260,12 +221,12 @@ function test_input($data) {
 									}
 								?>
 								<div class="form-group">
-									<label for="emailAddress">Email Address:</label>
-									<input id="emailAddress" type="email" class="form-control" name="emailAddress" required>
+									<label for="loginEmailAddress">Email Address:</label>
+									<input id="loginEmailAddress" type="email" class="form-control" name="loginEmailAddress" required>
 								</div>
 								<div class="form-group">
-									<label for="password">Password:</label>
-									<input id="password" type="password" class="form-control" name="password" required>
+									<label for="loginPassword">Password:</label>
+									<input id="loginPassword" type="password" class="form-control" name="loginPassword" required>
 								</div>
 							</form>
 						</div>
@@ -373,7 +334,7 @@ function test_input($data) {
 							<div class="panel panel-success">
 								<div class="panel-heading">
 									<h4 class="panel-title text-center">
-										<a id="toggle" data-toggle="collapse" href="#table">Show Calculations</a>
+										<a id="toggle" data-toggle="collapse" href="#table" style="text-decoration:underline;">Show Calculations</a>
 									</h4>
 								</div>
 								<div id="table" class="panel-collapse collapse">
@@ -563,14 +524,6 @@ function test_input($data) {
 </div>
 
 <script>
-(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
-
-ga('create', 'UA-101638684-1', 'auto');
-ga('send', 'pageview');
-
 <?php
 if (isset($registerError) || isset($loginError)) {
 	echo "$(document).ready(function() {
@@ -583,12 +536,7 @@ $(document).ready(function() {
     $('[data-toggle="tooltip"]').tooltip();
 	
 	$("#toggle").click(function() {
-		if ($("#toggle").text() == "Show Calculations") {
-			$("#toggle").text("Hide Calculations");
-		}
-		else {
-			$("#toggle").text("Show Calculations");
-		}
+		$("#toggle").text($("#toggle").text() == "Show Calculations" ? "Hide Calculations" : "Show Calculations");
 	});
 
 	$("#compoundingPill").click(function() {
@@ -602,7 +550,6 @@ $(document).ready(function() {
 	});
 
 	$('input[type="range"]').rangeslider({
-
 		// Feature detection the default is `true`.
 		// Set this to `false` if you want to use
 		// the polyfill also in Browsers which support
@@ -633,7 +580,7 @@ $(document).ready(function() {
 		onSlideEnd: function(position, value) {}
 	});
 
-	var tab = getCookie("tab");
+	let tab = getCookie("tab");
 	if (tab != "") {
 		if (tab == "spending") {
 			$("#compoundingPill").removeClass("active");
@@ -642,8 +589,7 @@ $(document).ready(function() {
 			$("#spendingPill").addClass("active");
 			$("#spending").addClass("in");
 			$("#spending").addClass("active");
-		}
-		else if (tab == "saving") {
+		} else if (tab == "saving") {
 			$("#compoundingPill").removeClass("active");
 			$("#compounding").removeClass("in");
 			$("#compounding").removeClass("active");
@@ -654,138 +600,44 @@ $(document).ready(function() {
 	}
 });
 
-var app = angular.module('myApp', []);
+let app = angular.module('myApp', []);
 app.controller('myCtrl', function($scope) {
-	$scope.currentAge = <?php 
-	if (isset($_SESSION["currentAge"])) {
-		echo $_SESSION["currentAge"];
-	}
-	else {
-		echo 25;
-	}?>;
-	$scope.targetRetirementAge = <?php 
-	if (isset($_SESSION["targetRetirementAge"])) {
-		echo $_SESSION["targetRetirementAge"];
-	}
-	else {
-		echo 65;
-	}?>;
-	$scope.beginningBalance = <?php 
-	if (isset($_SESSION["beginningBalance"])) {
-		echo $_SESSION["beginningBalance"];
-	}
-	else {
-		echo 10000;
-	}?>;
-	$scope.annualSavings = <?php 
-	if (isset($_SESSION["annualSavings"])) {
-		echo $_SESSION["annualSavings"];
-	}
-	else {
-		echo 5000;
-	}?>;
-	$scope.annualSavingsIncreaseRate = <?php 
-	if (isset($_SESSION["annualSavingsIncreaseRate"])) {
-		echo $_SESSION["annualSavingsIncreaseRate"];
-	}
-	else {
-		echo 0;
-	}?>;
-	$scope.expectedAnnualReturn = <?php 
-	if (isset($_SESSION["expectedAnnualReturn"])) {
-		echo $_SESSION["expectedAnnualReturn"];
-	}
-	else {
-		echo 6;
-	}?>;
-	$scope.age = <?php 
-	if (isset($_SESSION["age"])) {
-		echo $_SESSION["age"];
-	}
-	else {
-		echo 25;
-	}?>;
-	$scope.annualIncome = <?php 
-	if (isset($_SESSION["annualIncome"])) {
-		echo $_SESSION["annualIncome"];
-	}
-	else {
-		echo 50000;
-	}?>;
-	$scope.monthlyEssentialExpenses = <?php 
-	if (isset($_SESSION["monthlyEssentialExpenses"])) {
-		echo $_SESSION["monthlyEssentialExpenses"];
-	}
-	else {
-		echo 1000;
-	}?>;
-	$scope.emergencyFund = <?php 
-	if (isset($_SESSION["emergencyFund"])) {
-		echo $_SESSION["emergencyFund"];
-	}
-	else {
-		echo 0;
-	}?>;
-	$scope.debt = <?php 
-	if (isset($_SESSION["debt"])) {
-		echo $_SESSION["debt"];
-	}
-	else {
-		echo 1000;
-	}?>;
-	$scope.contributionsThisYear = <?php 
-	if (isset($_SESSION["contributionsThisYear"])) {
-		echo $_SESSION["contributionsThisYear"];
-	}
-	else {
-		echo 0;
-	}?>;
-	$scope.company401kMatch = <?php 
-	if (isset($_SESSION["company401kMatch"])) {
-		echo $_SESSION["company401kMatch"];
-	}
-	else {
-		echo 5;
-	}?>;
-	$scope.iraContributionsThisYear = <?php 
-	if (isset($_SESSION["iraContributionsThisYear"])) {
-		echo $_SESSION["iraContributionsThisYear"];
-	}
-	else {
-		echo 0;
-	}?>;
+	$scope.currentAge = <?php echo isset($_SESSION["currentAge"]) ? $_SESSION["currentAge"] : 25 ?>;
+	$scope.targetRetirementAge = <?php echo isset($_SESSION["targetRetirementAge"]) ? $_SESSION["targetRetirementAge"] : 65 ?>;
+	$scope.beginningBalance = <?php echo isset($_SESSION["beginningBalance"]) ? $_SESSION["beginningBalance"] : 10000 ?>;
+	$scope.annualSavings = <?php echo isset($_SESSION["annualSavings"]) ? $_SESSION["annualSavings"] : 5000 ?>;
+	$scope.annualSavingsIncreaseRate = <?php echo isset($_SESSION["annualSavingsIncreaseRate"]) ? $_SESSION["annualSavingsIncreaseRate"] : 0 ?>;
+	$scope.expectedAnnualReturn = <?php echo isset($_SESSION["expectedAnnualReturn"]) ? $_SESSION["expectedAnnualReturn"] : 6 ?>;
+	$scope.age = <?php echo isset($_SESSION["age"]) ? $_SESSION["age"] : 25 ?>;
+	$scope.annualIncome = <?php echo isset($_SESSION["annualIncome"]) ? $_SESSION["annualIncome"] : 50000 ?>;
+	$scope.monthlyEssentialExpenses = <?php echo isset($_SESSION["monthlyEssentialExpenses"]) ? $_SESSION["monthlyEssentialExpenses"] : 1000 ?>;
+	$scope.emergencyFund = <?php echo isset($_SESSION["emergencyFund"]) ? $_SESSION["emergencyFund"] : 0 ?>;
+	$scope.debt = <?php echo isset($_SESSION["debt"]) ? $_SESSION["debt"] : 1000 ?>;
+	$scope.contributionsThisYear = <?php echo isset($_SESSION["contributionsThisYear"]) ? $_SESSION["contributionsThisYear"] : 0 ?>;
+	$scope.company401kMatch = <?php echo isset($_SESSION["company401kMatch"]) ? $_SESSION["company401kMatch"] : 5 ?>;
+	$scope.iraContributionsThisYear = <?php echo isset($_SESSION["iraContributionsThisYear"]) ? $_SESSION["iraContributionsThisYear"] : 0 ?>;
 	$scope.updateContributions = function() {
 		if ($scope.monthlyEssentialExpenses > 0) {
 			$("#essentialExpenses").show(200);
-		}
-		else {
+		} else {
 			$("#essentialExpenses").hide(200);
 		}
 		
-		var idealEmergencyFund = $scope.monthlyEssentialExpenses * 6;
-		var cash = $scope.annualIncome - $scope.monthlyEssentialExpenses * 12;
-		//Current emergency fund is sufficient
-		if ($scope.emergencyFund >= idealEmergencyFund) {
+		let idealEmergencyFund = $scope.monthlyEssentialExpenses * 6;
+		let cash = $scope.annualIncome - $scope.monthlyEssentialExpenses * 12;
+		if ($scope.emergencyFund >= idealEmergencyFund) { // Current emergency fund is sufficient
 			$scope.emergencyFundContributions = 0;
 			$("#emergencyFundContributions").hide(200);
-		}
-		//Current emergency fund is not sufficient
-		else {
-			//Enough cash for contributions to emergency fund
-			if (cash > 0) {
-				var emergencyFundTopOff = idealEmergencyFund - $scope.emergencyFund;
-				//Enough cash to top off emergency fund - top it off
-				if (cash >= emergencyFundTopOff) {
+		} else { // Current emergency fund is not sufficient
+			if (cash > 0) { // Enough cash for contributions to emergency fund
+				let emergencyFundTopOff = idealEmergencyFund - $scope.emergencyFund;
+				if (cash >= emergencyFundTopOff) { // Enough cash to top off emergency fund - top it off
 					$scope.emergencyFundContributions = emergencyFundTopOff;
-				}
-				//Not enough cash to top off emergency fund - just contribute all of it
-				else {
+				} else { // Not enough cash to top off emergency fund - just contribute all of it
 					$scope.emergencyFundContributions = cash;
 				}
 				$("#emergencyFundContributions").show(200);
-			}
-			//Not enough cash for contributions to emergency fund
-			else {
+			} else { // Not enough cash for contributions to emergency fund
 				$scope.emergencyFundContributions = 0;
 				$("#emergencyFundContributions").hide(200);
 			}
@@ -793,24 +645,21 @@ app.controller('myCtrl', function($scope) {
 		cash -= $scope.emergencyFundContributions;
 		$scope.emergencyFundContributions = "$" + $scope.emergencyFundContributions.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, "$1,");
 		
-		var company401kMatch = $scope.annualIncome * ($scope.company401kMatch / 100);
-		var totalCompany401kContributions;
+		let company401kMatch = $scope.annualIncome * ($scope.company401kMatch / 100);
+		let totalCompany401kContributions;
 		if ($scope.contributionsThisYear >= company401kMatch) {
 			$scope.company401kMatchContributions = 0;
 			$("#company401kMatchContributions").hide(200);
-		}
-		else {
+		} else {
 			if (cash > 0) {
-				var company401kMatchTopOff = company401kMatch - $scope.contributionsThisYear;
+				let company401kMatchTopOff = company401kMatch - $scope.contributionsThisYear;
 				if (cash >= company401kMatchTopOff) {
 					$scope.company401kMatchContributions = company401kMatchTopOff;
-				}
-				else {
+				} else {
 					$scope.company401kMatchContributions = cash;
 				}
 				$("#company401kMatchContributions").show(200);
-			}
-			else {
+			} else {
 				$scope.company401kMatchContributions = 0;
 				$("#company401kMatchContributions").hide(200);
 			}
@@ -823,44 +672,38 @@ app.controller('myCtrl', function($scope) {
 			if (cash > 0) {
 				if (cash >= $scope.debt) {
 					$scope.debtContributions = $scope.debt;
-				}
-				else {
+				} else {
 					$scope.debtContributions = cash;
 				}
 				$("#debtContributions").show(200);
-			}
-			else {
+			} else {
 				$scope.debtContributions = 0;
 				$("#debtContributions").hide(200);
 			}
-		}
-		else {
+		} else {
 			$scope.debtContributions = 0;
 			$("#debtContributions").hide(200);
 		}
 		cash -= $scope.debtContributions;
 		$scope.debtContributions = "$" + $scope.debtContributions.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, "$1,");
 		
-		var iraContributionsLimit = 5500;
+		let iraContributionsLimit = 5500;
 		if ($scope.age >= 50) {
 			iraContributionsLimit = 6500;
 		}
 		if ($scope.iraContributionsThisYear >= iraContributionsLimit) {
 			$scope.iraContributions = 0;
 			$("#iraContributions").hide(200);
-		}
-		else {
+		} else {
 			if (cash > 0) {
-				var iraTopOff = iraContributionsLimit - $scope.iraContributionsThisYear;
+				let iraTopOff = iraContributionsLimit - $scope.iraContributionsThisYear;
 				if (cash >= iraTopOff) {
 					$scope.iraContributions = iraTopOff;
-				}
-				else {
+				} else {
 					$scope.iraContributions = cash;
 				}
 				$("#iraContributions").show(200);
-			}
-			else {
+			} else {
 				$scope.iraContributions = 0;
 				$("#iraContributions").hide(200);
 			}
@@ -868,26 +711,23 @@ app.controller('myCtrl', function($scope) {
 		cash -= $scope.iraContributions;
 		$scope.iraContributions = "$" + $scope.iraContributions.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, "$1,");
 		
-		var company401kContributionsLimit = 18000;
+		let company401kContributionsLimit = 18000;
 		if ($scope.age >= 50) {
 			company401kContributionsLimit = 24000;
 		}
 		if (totalCompany401kContributions >= company401kContributionsLimit) {
 			$scope.company401kContributions = 0;
 			$("#company401kContributions").hide(200);
-		}
-		else {
+		} else {
 			if (cash > 0) {
-				var company401kTopOff = company401kContributionsLimit - totalCompany401kContributions;
+				let company401kTopOff = company401kContributionsLimit - totalCompany401kContributions;
 				if (cash >= company401kTopOff) {
 					$scope.company401kContributions = company401kTopOff;
-				}
-				else {
+				} else {
 					$scope.company401kContributions = cash;
 				}
 				$("#company401kContributions").show(200);
-			}
-			else {
+			} else {
 				$scope.company401kContributions = 0;
 				$("#company401kContributions").hide(200);
 			}
@@ -898,30 +738,28 @@ app.controller('myCtrl', function($scope) {
 		if (cash > 0) {
 			$scope.cash = cash;
 			$("#cash").show(200);
-		}
-		else {
+		} else {
 			$scope.cash = 0;
 			$("#cash").hide(200);
 		}
 		$scope.cash = "$" + $scope.cash.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, "$1,");
 	};
 	$scope.updateChart = function() {
-		var tableData = [];
-		var myLabels = [];
-		var myData = [];
-		var beginningBalance = $scope.beginningBalance;
-		var annualSavings = $scope.annualSavings;
-		var i;
-		var years = $scope.targetRetirementAge - $scope.currentAge;
-		for (i = 0; i <= years; i++) {
+		let tableData = [];
+		let myLabels = [];
+		let myData = [];
+		let beginningBalance = $scope.beginningBalance;
+		let annualSavings = $scope.annualSavings;
+		let years = $scope.targetRetirementAge - $scope.currentAge;
+		for (let i = 0; i <= years; i++) {
 			myLabels.push($scope.currentAge + i);
 			myData.push(beginningBalance.toFixed(2));
-			var tableObject = {
-				age:$scope.currentAge + i,
-				beginningBalance:"$" + beginningBalance.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, "$1,"),
-				interest:"$" + (beginningBalance * ($scope.expectedAnnualReturn / 100)).toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, "$1,"),
-				savings:"$" + annualSavings.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, "$1,"),
-				endingBalance:"$" + (beginningBalance * (1 + $scope.expectedAnnualReturn / 100) + annualSavings).toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, "$1,")
+			let tableObject = {
+				age: $scope.currentAge + i,
+				beginningBalance: "$" + beginningBalance.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, "$1,"),
+				interest: "$" + (beginningBalance * ($scope.expectedAnnualReturn / 100)).toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, "$1,"),
+				savings: "$" + annualSavings.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, "$1,"),
+				endingBalance: "$" + (beginningBalance * (1 + $scope.expectedAnnualReturn / 100) + annualSavings).toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, "$1,")
 			};
 			tableData.push(tableObject);
 			if (i == years) {
@@ -940,8 +778,8 @@ Chart.defaults.global.elements.point.hitRadius = 15;
 Chart.defaults.global.legend.display = false;
 Chart.defaults.global.tooltips.displayColors = false;
 
-var ctx = document.getElementById("myChart").getContext("2d");
-var chart = new Chart(ctx, {
+let ctx = document.getElementById("myChart").getContext("2d");
+let chart = new Chart(ctx, {
     type: "line",
     data: {
         datasets: [{
@@ -985,14 +823,14 @@ function calculateYearsToRetirement(savingsRate) {
 	if (savingsRate == 0) {
 		return "Infinite";
 	}
-	var savings = savingsRate;
-	var expenses = 100 - savingsRate;
-	var portfolioValue = 0;
-	var annualReturn = 0.05;
-	var withdrawalRate = 0.04;
-	var withdrawal = portfolioValue * withdrawalRate;
-	var interest;
-	var yearsToRetirement = 0;
+	let savings = savingsRate;
+	let expenses = 100 - savingsRate;
+	let portfolioValue = 0;
+	let annualReturn = 0.05;
+	let withdrawalRate = 0.04;
+	let withdrawal = portfolioValue * withdrawalRate;
+	let interest;
+	let yearsToRetirement = 0;
 	while (withdrawal < expenses) {
 		portfolioValue += savings;
 		interest = portfolioValue * annualReturn;
@@ -1008,11 +846,11 @@ function setCookie(cname, cvalue) {
 }
 
 function getCookie(cname) {
-    var name = cname + "=";
-    var decodedCookie = decodeURIComponent(document.cookie);
-    var ca = decodedCookie.split(';');
-    for(var i = 0; i <ca.length; i++) {
-        var c = ca[i];
+    let name = cname + "=";
+    let decodedCookie = decodeURIComponent(document.cookie);
+    let ca = decodedCookie.split(';');
+    for (let i = 0; i < ca.length; i++) {
+        let c = ca[i];
         while (c.charAt(0) == ' ') {
             c = c.substring(1);
         }
