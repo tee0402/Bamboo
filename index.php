@@ -22,7 +22,6 @@ if (isset($_POST["register"])) {
 			$_SESSION["loggedIn"] = true;
 			$_SESSION["email"] = $email;
 			$conn = null;
-			refresh();
 		} catch (PDOException $e) {
 			$registerError = "Account already exists. Please login to your account.";
 		}
@@ -48,7 +47,6 @@ if (isset($_POST["register"])) {
 		if ($hashTry === $hashActual) {
 			$_SESSION["loggedIn"] = true;
 			$_SESSION["email"] = $email;
-			refresh();
 		} else {
 			$loginError = "Incorrect email or password. Please try again.";
 		}
@@ -58,10 +56,9 @@ if (isset($_POST["register"])) {
 } else if (isset($_POST["logout"])) {
 	session_unset();
 	session_destroy();
-	refresh();
 } else if (isset($_POST["saveCompounding"])) {
 	if (isset($_POST["currentAge"]) && isset($_POST["targetRetirementAge"]) && isset($_POST["beginningBalance"]) && isset($_POST["annualSavings"]) && isset($_POST["annualSavingsIncreaseRate"]) && isset($_POST["expectedAnnualReturn"])) {
-		$currentAge = $targetRetirementAge = $beginningBalance = $annualSavings = $annualSavingsIncreaseRate = $expectedAnnualReturn = NULL;
+		$currentAge = $targetRetirementAge = $beginningBalance = $annualSavings = $annualSavingsIncreaseRate = $expectedAnnualReturn = null;
 		$currentAge = test_input($_POST["currentAge"]);
 		$targetRetirementAge = test_input($_POST["targetRetirementAge"]);
 		$beginningBalance = test_input($_POST["beginningBalance"]);
@@ -76,9 +73,9 @@ if (isset($_POST["register"])) {
 		$conn = null;
 	}
 } else if (isset($_POST["saveSpending"])) {
-	if (isset($_POST["age"]) && isset($_POST["annualIncome"]) && isset($_POST["monthlyEssentialExpenses"]) && isset($_POST["emergencyFund"]) && isset($_POST["debt"]) && isset($_POST["contributionsThisYear"]) && isset($_POST["company401kMatch"]) && isset($_POST["iraContributionsThisYear"])) {
-		$age = $annualIncome = $monthlyEssentialExpenses = $emergencyFund = $debt = $contributionsThisYear = $company401kMatch = $iraContributionsThisYear = NULL;
-		$age = test_input($_POST["age"]);
+	if (isset($_POST["annualIncome"]) && isset($_POST["monthlyEssentialExpenses"]) && isset($_POST["emergencyFund"]) && isset($_POST["debt"]) && isset($_POST["contributionsThisYear"]) && isset($_POST["company401kMatch"]) && isset($_POST["iraContributionsThisYear"])) {
+		$annualIncome = $monthlyEssentialExpenses = $emergencyFund = $debt = $contributionsThisYear = $company401kMatch = $iraContributionsThisYear = null;
+		$currentAge50OrOlder = isset($_POST["currentAge50OrOlder"]) ? 1 : 0;
 		$annualIncome = test_input($_POST["annualIncome"]);
 		$monthlyEssentialExpenses = test_input($_POST["monthlyEssentialExpenses"]);
 		$emergencyFund = test_input($_POST["emergencyFund"]);
@@ -88,7 +85,7 @@ if (isset($_POST["register"])) {
 		$iraContributionsThisYear = test_input($_POST["iraContributionsThisYear"]);
 		
 		$conn = new PDO("mysql:host=$servername;dbname=$dbname", $username, $pw);
-		$sql = "UPDATE Accounts SET Age=$age, AnnualIncome=$annualIncome, MonthlyEssentialExpenses=$monthlyEssentialExpenses, EmergencyFund=$emergencyFund, Debt=$debt, ContributionsThisYear=$contributionsThisYear, Company401kMatch=$company401kMatch, IRAContributionsThisYear=$iraContributionsThisYear WHERE Email='" . $_SESSION['email'] . "'";
+		$sql = "UPDATE Accounts SET CurrentAge50OrOlder=$currentAge50OrOlder, AnnualIncome=$annualIncome, MonthlyEssentialExpenses=$monthlyEssentialExpenses, EmergencyFund=$emergencyFund, Debt=$debt, ContributionsThisYear=$contributionsThisYear, Company401kMatch=$company401kMatch, IRAContributionsThisYear=$iraContributionsThisYear WHERE Email='" . $_SESSION['email'] . "'";
 		$conn->exec($sql);
 		
 		$conn = null;
@@ -98,10 +95,10 @@ if (isset($_POST["register"])) {
 if (isset($_SESSION["loggedIn"])) {
 	$conn = new PDO("mysql:host=$servername;dbname=$dbname", $username, $pw);
 	
-	$stmt = $conn->prepare("SELECT CurrentAge, TargetRetirementAge, BeginningBalance, AnnualSavings, AnnualSavingsIncreaseRate, ExpectedAnnualReturn, Age, AnnualIncome, MonthlyEssentialExpenses, EmergencyFund, Debt, ContributionsThisYear, Company401kMatch, IRAContributionsThisYear FROM Accounts WHERE Email='" . $_SESSION['email'] . "'");
+	$stmt = $conn->prepare("SELECT CurrentAge, TargetRetirementAge, BeginningBalance, AnnualSavings, AnnualSavingsIncreaseRate, ExpectedAnnualReturn, CurrentAge50OrOlder, AnnualIncome, MonthlyEssentialExpenses, EmergencyFund, Debt, ContributionsThisYear, Company401kMatch, IRAContributionsThisYear FROM Accounts WHERE Email='" . $_SESSION['email'] . "'");
 	$stmt->execute();
 	$row = $stmt->fetch();
-	if ($row["CurrentAge"] != NULL && $row["TargetRetirementAge"] != NULL && $row["BeginningBalance"] != NULL && $row["AnnualSavings"] != NULL && $row["AnnualSavingsIncreaseRate"] != NULL && $row["ExpectedAnnualReturn"] != NULL) {
+	if ($row["CurrentAge"] != null && $row["TargetRetirementAge"] != null && $row["BeginningBalance"] != null && $row["AnnualSavings"] != null && $row["AnnualSavingsIncreaseRate"] != null && $row["ExpectedAnnualReturn"] != null) {
 		$_SESSION["currentAge"] = $row["CurrentAge"];
 		$_SESSION["targetRetirementAge"] = $row["TargetRetirementAge"];
 		$_SESSION["beginningBalance"] = $row["BeginningBalance"];
@@ -109,8 +106,8 @@ if (isset($_SESSION["loggedIn"])) {
 		$_SESSION["annualSavingsIncreaseRate"] = $row["AnnualSavingsIncreaseRate"];
 		$_SESSION["expectedAnnualReturn"] = $row["ExpectedAnnualReturn"];
 	}
-	if ($row["Age"] != NULL && $row["AnnualIncome"] != NULL && $row["MonthlyEssentialExpenses"] != NULL && $row["EmergencyFund"] != NULL && $row["Debt"] != NULL && $row["ContributionsThisYear"] != NULL && $row["Company401kMatch"] != NULL && $row["IRAContributionsThisYear"] != NULL) {
-		$_SESSION["age"] = $row["Age"];
+	if ($row["CurrentAge50OrOlder"] != null && $row["AnnualIncome"] != null && $row["MonthlyEssentialExpenses"] != null && $row["EmergencyFund"] != null && $row["Debt"] != null && $row["ContributionsThisYear"] != null && $row["Company401kMatch"] != null && $row["IRAContributionsThisYear"] != null) {
+		$_SESSION["currentAge50OrOlder"] = $row["CurrentAge50OrOlder"];
 		$_SESSION["annualIncome"] = $row["AnnualIncome"];
 		$_SESSION["monthlyEssentialExpenses"] = $row["MonthlyEssentialExpenses"];
 		$_SESSION["emergencyFund"] = $row["EmergencyFund"];
@@ -128,11 +125,6 @@ function test_input($data) {
   $data = stripslashes($data);
   $data = htmlspecialchars($data);
   return $data;
-}
-
-function refresh() {
-	header('location: index.php');
-	exit;
 }
 ?>
 <!DOCTYPE html>
@@ -152,10 +144,17 @@ function refresh() {
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/rangeslider.js/2.3.0/rangeslider.min.js"></script>
 	<title>Bamboo - Personal Finance Utility</title>
 	<style>
-	.nav-pills > li.active > a, .nav-pills > li.active > a:hover, .nav-pills > li.active > a:focus {
-		background-color: #99bc20;
-	}
+	.nav-pills > li.active > a, .nav-pills > li.active > a:hover, .nav-pills > li.active > a:focus { background-color: #99bc20; }
 	.material-icons.md-16 { font-size: 16px; }
+	.switch { position: relative; display: inline-block; width: 50px; height: 26px; }
+	.switch input { opacity: 0; width: 0; height: 0; }
+	.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; -webkit-transition: .4s; transition: .4s; }
+	.slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 4px; bottom: 4px; background-color: white; -webkit-transition: .4s; transition: .4s; }
+	input:checked + .slider { background-color: #2196F3; }
+	input:focus + .slider { box-shadow: 0 0 1px #2196F3; }
+	input:checked + .slider:before { -webkit-transform: translateX(24px); -ms-transform: translateX(24px); transform: translateX(24px); }
+	.slider.round { border-radius: 26px; }
+	.slider.round:before { border-radius: 50%; }
 	</style>
 </head>
 <body>
@@ -165,7 +164,7 @@ function refresh() {
 		<div class="page-header">
 			<?php
 			if (isset($_SESSION['loggedIn'])) {
-				echo '<form method="post" action="' . htmlspecialchars($_SERVER["PHP_SELF"]) . '">
+				echo '<form method="post" action="/">
 				<button type="submit" name="logout" class="btn btn-success pull-right" style="margin-right:30px;">Logout</button>
 				</form>
 				<h5 class="pull-right" style="margin-right:20px;">' . $_SESSION["email"] . '</h5>';
@@ -174,7 +173,7 @@ function refresh() {
 				<button type="button" class="btn btn-success pull-right" data-toggle="modal" data-target="#login" style="margin-right:20px;">Login</button>';
 			}
 			?>
-			<a href="." style="text-decoration:none;"><h1 style="margin-left:30px; color:#99bc20;"><strong>Bamboo</strong><img src="bamboo.png" height="33px" style="margin-left:5px;"></h1></a>
+			<h1 style="margin-left:30px;"><a href="." style="text-decoration:none;"><strong style="color:#99bc20;">Bamboo</strong><img src="bamboo.png" height="33px" style="margin-left:5px;"></a></h1>
 			<h4 style="margin-left:30px;"><small>Grow your savings for financial independence or retirement</small></h4>
 			<div id="register" class="modal fade" role="dialog">
 				<div class="modal-dialog">
@@ -184,7 +183,7 @@ function refresh() {
 							<h4 class="modal-title">Register</h4>
 						</div>
 						<div class="modal-body">
-							<form id="formRegister" method="post" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]);?>">
+							<form id="formRegister" method="post" action="/">
 								<div class="form-group">
 									<label for="registerEmailAddress">Email Address:</label>
 									<input id="registerEmailAddress" type="email" class="form-control" name="registerEmailAddress" required>
@@ -209,7 +208,7 @@ function refresh() {
 							<h4 class="modal-title">Login</h4>
 						</div>
 						<div class="modal-body">
-							<form id="formLogin" method="post" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>">
+							<form id="formLogin" method="post" action="/">
 								<?php
 									if (isset($registerError)) {
 										echo "<div class='alert alert-danger'>$registerError</div>";
@@ -265,18 +264,18 @@ function refresh() {
 				</div>
 				<div class="row">
 					<div class="col-md-3">
-						<form method="post" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]);?>">
+						<form method="post" action="/">
 							<div class="form-group">
 								<label for="currentAge">Current Age:</label>
 								<div class="input-group">
-									<input id="currentAge" type="number" class="form-control" name="currentAge" ng-model="currentAge" ng-change="updateChart()">
+									<input id="currentAge" type="number" class="form-control" name="currentAge" ng-model="currentAge" ng-change="updateChart()" min="0">
 									<span class="input-group-addon">Years</span>
 								</div>
 							</div>
 							<div class="form-group">
 								<label for="targetRetirementAge">Target Retirement Age:</label>
 								<div class="input-group">
-									<input id="targetRetirementAge" type="number" class="form-control" name="targetRetirementAge" ng-model="targetRetirementAge" ng-change="updateChart()">
+									<input id="targetRetirementAge" type="number" class="form-control" name="targetRetirementAge" ng-model="targetRetirementAge" ng-change="updateChart()" min="{{ currentAge }}">
 									<span class="input-group-addon">Years</span>
 								</div>
 							</div>
@@ -304,9 +303,9 @@ function refresh() {
 							</div>
 							<div class="form-group">
 								<label for="expectedAnnualReturn">Expected Annual Return:</label>
-								<a data-toggle="tooltip" title="This assumes that you invest all your savings. The historical annualized return of the Dow, adjusted for inflation, is 6-7%"><span class="glyphicon glyphicon-info-sign"></span></a>
+								<a data-toggle="tooltip" title="This assumes that you invest all your savings. The annualized inflation-adjusted total returns of the S&P 500 since 1926 is about 7%"><span class="glyphicon glyphicon-info-sign"></span></a>
 								<div class="input-group">
-									<input id="expectedAnnualReturn" type="number" class="form-control" name="expectedAnnualReturn" ng-model="expectedAnnualReturn" ng-change="updateChart()" min="0" max="20">
+									<input id="expectedAnnualReturn" type="number" class="form-control" name="expectedAnnualReturn" ng-model="expectedAnnualReturn" ng-change="updateChart()">
 									<span class="input-group-addon">%</span>
 								</div>
 							</div>
@@ -350,12 +349,12 @@ function refresh() {
 														<th>Savings</th>
 														<th>Ending Balance</th>
 													</tr>
-													<tr ng-repeat="x in tableData">
-														<td>{{ x.age }}</td>
-														<td>{{ x.beginningBalance }}</td>
-														<td>{{ x.interest }}</td>
-														<td>{{ x.savings }}</td>
-														<td>{{ x.endingBalance }}</td>
+													<tr ng-repeat="row in tableData">
+														<td>{{ row.age }}</td>
+														<td>{{ row.beginningBalance }}</td>
+														<td>{{ row.interest }}</td>
+														<td>{{ row.savings }}</td>
+														<td>{{ row.endingBalance }}</td>
 													</tr>
 												</table>
 											</div>
@@ -373,9 +372,8 @@ function refresh() {
 					<div class="col-md-1"></div>
 					<div class="col-md-10">
 						<div class="alert alert-info" style="font-size:18px;">
-							You can spend your income in a way that benefits you in the long run.
-							You can do so by focusing on the more important priorities first.
-							Those are the ones that would give you the maximum benefits for your money, such as building up an ample emergency fund (6 months of expenses), taking advantage of free money such as a company 401(k) match, minimizing interest payments by eliminating high-interest debt, and contributing to your tax-deferred retirement accounts before contributing to your taxable ones.
+							You can spend your income in a way that benefits you in the long run by focusing on the more important priorities first.
+							Those are the ones that would give you the maximum benefits for your money, such as building up an ample emergency fund (6 months of expenses), taking advantage of free money such as a company 401(k) match, minimizing interest payments by eliminating high-interest debt, and contributing to tax-deferred retirement accounts before contributing to taxable ones.
 							Based on the flowchart from <a href="https://www.reddit.com/r/personalfinance/comments/4gdlu9/how_to_prioritize_spending_your_money_a_flowchart/" class="alert-link">Reddit</a>.
 						</div>
 					</div>
@@ -383,12 +381,14 @@ function refresh() {
 				</div>
 				<div class="row">
 					<div class="col-md-3">
-						<form method="post" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]);?>">
+						<form method="post" action="/">
 							<div class="form-group">
-								<label for="age">Age:</label>
-								<div class="input-group">
-									<input id="age" type="number" class="form-control" name="age" ng-model="age" ng-change="updateContributions()">
-									<span class="input-group-addon">Years</span>
+								<label for="currentAge50OrOlder">Current Age 50 Or Older?</label>
+								<div style="margin-bottom:-10px;">
+									<label class="switch">
+										<input id="currentAge50OrOlder" type="checkbox" class="form-control" name="currentAge50OrOlder" ng-model="currentAge50OrOlder" ng-change="updateContributions()">
+										<span class="slider round"></span>
+									</label>
 								</div>
 							</div>
 							<div class="form-group">
@@ -499,11 +499,11 @@ function refresh() {
 				<div class="row">
 					<div class="col-md-12 text-center">
 						<label for="savingsRate" style="font-size:1.25em;">Savings Rate</label>
-						<a data-toggle="tooltip" title="The percentage of annual income that is saved. The current U.S. personal savings rate is 5.3%"><span class="glyphicon glyphicon-info-sign"></span></a>
+						<a data-toggle="tooltip" title="The percentage of annual income that is saved. The current U.S. personal savings rate is 6.2%"><span class="glyphicon glyphicon-info-sign"></span></a>
 						<h1 id="sliderText" style="color:#99bc20; margin-top:0px; margin-bottom:15px;"></h1>
 						<input id="slider" type="range" value="5">
 						<label for="yearsToRetirement" style="margin-top:20px; font-size:1.875em;">Years to Retirement</label>
-						<a data-toggle="tooltip" title="Assumes 5% annual returns after inflation, 4% withdrawal rate, and that your expenses remain constant in retirement"><span class="glyphicon glyphicon-info-sign"></span></a>
+						<a data-toggle="tooltip" title="Assumes no initial savings, 5% annual returns after inflation, 4% withdrawal rate, and that your expenses remain constant in retirement"><span class="glyphicon glyphicon-info-sign"></span></a>
 						<p id="yearsToRetirement" style="color:#99bc20; margin-top:-25px; font-size:6.25em;"></p>
 					</div>
 				</div>
@@ -516,7 +516,7 @@ function refresh() {
 		<div class="col-md-3"></div>
 		<div class="col-md-6">
 			<div class="navbar navbar-default text-center" style="padding:10px;">
-				Icons made by <a href="http://www.freepik.com" title="Freepik">Freepik</a> from <a href="http://www.flaticon.com" title="Flaticon">www.flaticon.com</a> is licensed by <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a>
+				<a href="https://www.flaticon.com/free-icons/bamboo" title="bamboo icons">Bamboo icons created by Freepik - Flaticon</a>
 			</div>
 		</div>
 		<div class="col-md-3"></div>
@@ -532,22 +532,14 @@ if (isset($registerError) || isset($loginError)) {
 }
 ?>
 
-$(document).ready(function() {
+$(document).ready(() => {
     $('[data-toggle="tooltip"]').tooltip();
 	
-	$("#toggle").click(function() {
-		$("#toggle").text($("#toggle").text() == "Show Calculations" ? "Hide Calculations" : "Show Calculations");
-	});
+	$("#toggle").click(() => $("#toggle").text($("#toggle").text() == "Show Calculations" ? "Hide Calculations" : "Show Calculations"));
 
-	$("#compoundingPill").click(function() {
-		setCookie("tab", "compounding");
-	});
-	$("#spendingPill").click(function() {
-		setCookie("tab", "spending");
-	});
-	$("#savingPill").click(function() {
-		setCookie("tab", "saving");
-	});
+	$("#compoundingPill").click(() => setCookie("tab", "compounding"));
+	$("#spendingPill").click(() => setCookie("tab", "spending"));
+	$("#savingPill").click(() => setCookie("tab", "saving"));
 
 	$('input[type="range"]').rangeslider({
 		// Feature detection the default is `true`.
@@ -564,20 +556,17 @@ $(document).ready(function() {
 		fillClass: 'rangeslider__fill',
 		handleClass: 'rangeslider__handle',
 
-		// Callback function
-		onInit: function() {
+		onInit: () => {
 			$("#sliderText").text($("#slider").val() + "%");
 			$("#yearsToRetirement").text(calculateYearsToRetirement(Number($("#slider").val())));
 		},
 
-		// Callback function
-		onSlide: function(position, value) {
+		onSlide: (position, value) => {
 			$("#sliderText").text($("#slider").val() + "%");
 			$("#yearsToRetirement").text(calculateYearsToRetirement(Number($("#slider").val())));
 		},
 
-		// Callback function
-		onSlideEnd: function(position, value) {}
+		onSlideEnd: (position, value) => {}
 	});
 
 	let tab = getCookie("tab");
@@ -601,14 +590,14 @@ $(document).ready(function() {
 });
 
 let app = angular.module('myApp', []);
-app.controller('myCtrl', function($scope) {
+app.controller('myCtrl', ($scope) => {
 	$scope.currentAge = <?php echo isset($_SESSION["currentAge"]) ? $_SESSION["currentAge"] : 25 ?>;
 	$scope.targetRetirementAge = <?php echo isset($_SESSION["targetRetirementAge"]) ? $_SESSION["targetRetirementAge"] : 65 ?>;
 	$scope.beginningBalance = <?php echo isset($_SESSION["beginningBalance"]) ? $_SESSION["beginningBalance"] : 10000 ?>;
 	$scope.annualSavings = <?php echo isset($_SESSION["annualSavings"]) ? $_SESSION["annualSavings"] : 5000 ?>;
 	$scope.annualSavingsIncreaseRate = <?php echo isset($_SESSION["annualSavingsIncreaseRate"]) ? $_SESSION["annualSavingsIncreaseRate"] : 0 ?>;
 	$scope.expectedAnnualReturn = <?php echo isset($_SESSION["expectedAnnualReturn"]) ? $_SESSION["expectedAnnualReturn"] : 6 ?>;
-	$scope.age = <?php echo isset($_SESSION["age"]) ? $_SESSION["age"] : 25 ?>;
+	$scope.currentAge50OrOlder = <?php echo isset($_SESSION["currentAge50OrOlder"]) ? ($_SESSION["currentAge50OrOlder"] == 1 ? "true" : "false") : "false" ?>;
 	$scope.annualIncome = <?php echo isset($_SESSION["annualIncome"]) ? $_SESSION["annualIncome"] : 50000 ?>;
 	$scope.monthlyEssentialExpenses = <?php echo isset($_SESSION["monthlyEssentialExpenses"]) ? $_SESSION["monthlyEssentialExpenses"] : 1000 ?>;
 	$scope.emergencyFund = <?php echo isset($_SESSION["emergencyFund"]) ? $_SESSION["emergencyFund"] : 0 ?>;
@@ -616,7 +605,37 @@ app.controller('myCtrl', function($scope) {
 	$scope.contributionsThisYear = <?php echo isset($_SESSION["contributionsThisYear"]) ? $_SESSION["contributionsThisYear"] : 0 ?>;
 	$scope.company401kMatch = <?php echo isset($_SESSION["company401kMatch"]) ? $_SESSION["company401kMatch"] : 5 ?>;
 	$scope.iraContributionsThisYear = <?php echo isset($_SESSION["iraContributionsThisYear"]) ? $_SESSION["iraContributionsThisYear"] : 0 ?>;
-	$scope.updateContributions = function() {
+	$scope.updateChart = () => {
+		let chartLabels = [];
+		let chartData = [];
+		let tableData = [];
+		let beginningBalance = readNumber($scope.beginningBalance);
+		let annualSavings = readNumber($scope.annualSavings);
+		let expectedAnnualReturn = $scope.expectedAnnualReturn / 100;
+		for (let age = $scope.currentAge; age <= $scope.targetRetirementAge; age++) {
+			let interest = beginningBalance * expectedAnnualReturn;
+			chartLabels.push(age);
+			chartData.push(beginningBalance.toFixed(2));
+			tableData.push({
+				age: age,
+				beginningBalance: formatCurrency(beginningBalance),
+				interest: formatCurrency(interest),
+				savings: formatCurrency(annualSavings),
+				endingBalance: formatCurrency(beginningBalance + interest + annualSavings)
+			});
+			if (age == $scope.targetRetirementAge) {
+				$scope.endingBalance = formatCurrency(beginningBalance);
+				$scope.annualInterest = formatCurrency(interest);
+			}
+			beginningBalance += interest + annualSavings;
+			annualSavings = annualSavings * (1 + $scope.annualSavingsIncreaseRate / 100);
+		}
+		chart.data.labels = chartLabels;
+		chart.data.datasets[0].data = chartData;
+		chart.update();
+		$scope.tableData = tableData;
+	};
+	$scope.updateContributions = () => {
 		if ($scope.monthlyEssentialExpenses > 0) {
 			$("#essentialExpenses").show(200);
 		} else {
@@ -625,25 +644,21 @@ app.controller('myCtrl', function($scope) {
 		
 		let idealEmergencyFund = $scope.monthlyEssentialExpenses * 6;
 		let cash = $scope.annualIncome - $scope.monthlyEssentialExpenses * 12;
-		if ($scope.emergencyFund >= idealEmergencyFund) { // Current emergency fund is sufficient
+		if ($scope.emergencyFund >= idealEmergencyFund) {
 			$scope.emergencyFundContributions = 0;
 			$("#emergencyFundContributions").hide(200);
-		} else { // Current emergency fund is not sufficient
-			if (cash > 0) { // Enough cash for contributions to emergency fund
+		} else {
+			if (cash > 0) {
 				let emergencyFundTopOff = idealEmergencyFund - $scope.emergencyFund;
-				if (cash >= emergencyFundTopOff) { // Enough cash to top off emergency fund - top it off
-					$scope.emergencyFundContributions = emergencyFundTopOff;
-				} else { // Not enough cash to top off emergency fund - just contribute all of it
-					$scope.emergencyFundContributions = cash;
-				}
+				$scope.emergencyFundContributions = cash >= emergencyFundTopOff ? emergencyFundTopOff : cash;
 				$("#emergencyFundContributions").show(200);
-			} else { // Not enough cash for contributions to emergency fund
+			} else {
 				$scope.emergencyFundContributions = 0;
 				$("#emergencyFundContributions").hide(200);
 			}
 		}
 		cash -= $scope.emergencyFundContributions;
-		$scope.emergencyFundContributions = "$" + $scope.emergencyFundContributions.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, "$1,");
+		$scope.emergencyFundContributions = formatCurrency($scope.emergencyFundContributions);
 		
 		let company401kMatch = $scope.annualIncome * ($scope.company401kMatch / 100);
 		let totalCompany401kContributions;
@@ -653,11 +668,7 @@ app.controller('myCtrl', function($scope) {
 		} else {
 			if (cash > 0) {
 				let company401kMatchTopOff = company401kMatch - $scope.contributionsThisYear;
-				if (cash >= company401kMatchTopOff) {
-					$scope.company401kMatchContributions = company401kMatchTopOff;
-				} else {
-					$scope.company401kMatchContributions = cash;
-				}
+				$scope.company401kMatchContributions = cash >= company401kMatchTopOff ? company401kMatchTopOff : cash;
 				$("#company401kMatchContributions").show(200);
 			} else {
 				$scope.company401kMatchContributions = 0;
@@ -666,15 +677,11 @@ app.controller('myCtrl', function($scope) {
 		}
 		totalCompany401kContributions = $scope.contributionsThisYear + $scope.company401kMatchContributions;
 		cash -= $scope.company401kMatchContributions;
-		$scope.company401kMatchContributions = "$" + $scope.company401kMatchContributions.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, "$1,");
+		$scope.company401kMatchContributions = formatCurrency($scope.company401kMatchContributions);
 		
 		if ($scope.debt > 0) {
 			if (cash > 0) {
-				if (cash >= $scope.debt) {
-					$scope.debtContributions = $scope.debt;
-				} else {
-					$scope.debtContributions = cash;
-				}
+				$scope.debtContributions = cash >= $scope.debt ? $scope.debt : cash;
 				$("#debtContributions").show(200);
 			} else {
 				$scope.debtContributions = 0;
@@ -685,23 +692,16 @@ app.controller('myCtrl', function($scope) {
 			$("#debtContributions").hide(200);
 		}
 		cash -= $scope.debtContributions;
-		$scope.debtContributions = "$" + $scope.debtContributions.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, "$1,");
+		$scope.debtContributions = formatCurrency($scope.debtContributions);
 		
-		let iraContributionsLimit = 5500;
-		if ($scope.age >= 50) {
-			iraContributionsLimit = 6500;
-		}
+		let iraContributionsLimit = $scope.currentAge50OrOlder ? 7000 : 6000;
 		if ($scope.iraContributionsThisYear >= iraContributionsLimit) {
 			$scope.iraContributions = 0;
 			$("#iraContributions").hide(200);
 		} else {
 			if (cash > 0) {
 				let iraTopOff = iraContributionsLimit - $scope.iraContributionsThisYear;
-				if (cash >= iraTopOff) {
-					$scope.iraContributions = iraTopOff;
-				} else {
-					$scope.iraContributions = cash;
-				}
+				$scope.iraContributions = cash >= iraTopOff ? iraTopOff : cash;
 				$("#iraContributions").show(200);
 			} else {
 				$scope.iraContributions = 0;
@@ -709,23 +709,16 @@ app.controller('myCtrl', function($scope) {
 			}
 		}
 		cash -= $scope.iraContributions;
-		$scope.iraContributions = "$" + $scope.iraContributions.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, "$1,");
+		$scope.iraContributions = formatCurrency($scope.iraContributions);
 		
-		let company401kContributionsLimit = 18000;
-		if ($scope.age >= 50) {
-			company401kContributionsLimit = 24000;
-		}
+		let company401kContributionsLimit = $scope.currentAge50OrOlder ? 27000 : 20500;
 		if (totalCompany401kContributions >= company401kContributionsLimit) {
 			$scope.company401kContributions = 0;
 			$("#company401kContributions").hide(200);
 		} else {
 			if (cash > 0) {
 				let company401kTopOff = company401kContributionsLimit - totalCompany401kContributions;
-				if (cash >= company401kTopOff) {
-					$scope.company401kContributions = company401kTopOff;
-				} else {
-					$scope.company401kContributions = cash;
-				}
+				$scope.company401kContributions = cash >= company401kTopOff ? company401kTopOff : cash;
 				$("#company401kContributions").show(200);
 			} else {
 				$scope.company401kContributions = 0;
@@ -733,7 +726,7 @@ app.controller('myCtrl', function($scope) {
 			}
 		}
 		cash -= $scope.company401kContributions;
-		$scope.company401kContributions = "$" + $scope.company401kContributions.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, "$1,");
+		$scope.company401kContributions = formatCurrency($scope.company401kContributions);
 		
 		if (cash > 0) {
 			$scope.cash = cash;
@@ -742,35 +735,7 @@ app.controller('myCtrl', function($scope) {
 			$scope.cash = 0;
 			$("#cash").hide(200);
 		}
-		$scope.cash = "$" + $scope.cash.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, "$1,");
-	};
-	$scope.updateChart = function() {
-		let tableData = [];
-		let myLabels = [];
-		let myData = [];
-		let beginningBalance = $scope.beginningBalance;
-		let annualSavings = $scope.annualSavings;
-		let years = $scope.targetRetirementAge - $scope.currentAge;
-		for (let i = 0; i <= years; i++) {
-			myLabels.push($scope.currentAge + i);
-			myData.push(beginningBalance.toFixed(2));
-			let tableObject = {
-				age: $scope.currentAge + i,
-				beginningBalance: "$" + beginningBalance.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, "$1,"),
-				interest: "$" + (beginningBalance * ($scope.expectedAnnualReturn / 100)).toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, "$1,"),
-				savings: "$" + annualSavings.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, "$1,"),
-				endingBalance: "$" + (beginningBalance * (1 + $scope.expectedAnnualReturn / 100) + annualSavings).toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, "$1,")
-			};
-			tableData.push(tableObject);
-			if (i == years) {
-				$scope.endingBalance = "$" + beginningBalance.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, "$1,");
-				$scope.annualInterest = "$" + (beginningBalance * ($scope.expectedAnnualReturn / 100)).toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, "$1,");
-			}
-			beginningBalance = beginningBalance * (1 + $scope.expectedAnnualReturn / 100) + annualSavings;
-			annualSavings = annualSavings * (1 + $scope.annualSavingsIncreaseRate / 100);
-		}
-		$scope.tableData = tableData;
-		setData(chart, myLabels, myData);
+		$scope.cash = formatCurrency($scope.cash);
 	};
 });
 
@@ -778,8 +743,7 @@ Chart.defaults.global.elements.point.hitRadius = 15;
 Chart.defaults.global.legend.display = false;
 Chart.defaults.global.tooltips.displayColors = false;
 
-let ctx = document.getElementById("myChart").getContext("2d");
-let chart = new Chart(ctx, {
+let chart = new Chart(document.getElementById("myChart").getContext("2d"), {
     type: "line",
     data: {
         datasets: [{
@@ -809,14 +773,22 @@ let chart = new Chart(ctx, {
 					labelString: "Savings ($)"
 				}
 			}]
+		},
+		tooltips: {
+			callbacks: {
+				title: (tooltipItems, data) => "Age " + tooltipItems[0].xLabel,
+				label: (tooltipItem, data) => formatCurrency(tooltipItem.yLabel)
+			}
 		}
 	}
 });
 
-function setData(chart, labels, data) {
-    chart.data.labels = labels;
-    chart.data.datasets[0].data = data;
-    chart.update();
+function readNumber(number) {
+	return typeof number === "number" ? number : 0;
+}
+
+function formatCurrency(number) {
+	return number.toLocaleString("en-US", {style:"currency", currency:"USD"});
 }
 
 function calculateYearsToRetirement(savingsRate) {
@@ -828,34 +800,28 @@ function calculateYearsToRetirement(savingsRate) {
 	let portfolioValue = 0;
 	let annualReturn = 0.05;
 	let withdrawalRate = 0.04;
-	let withdrawal = portfolioValue * withdrawalRate;
-	let interest;
+	let withdrawal = 0;
 	let yearsToRetirement = 0;
 	while (withdrawal < expenses) {
 		portfolioValue += savings;
-		interest = portfolioValue * annualReturn;
-		portfolioValue += interest;
+		portfolioValue += portfolioValue * annualReturn;
 		withdrawal = portfolioValue * withdrawalRate;
 		yearsToRetirement++;
 	}
 	return yearsToRetirement;
 }
 
-function setCookie(cname, cvalue) {
-    document.cookie = cname + "=" + cvalue + ";";
+function setCookie(name, value) {
+    document.cookie = name + "=" + value + ";";
 }
 
-function getCookie(cname) {
-    let name = cname + "=";
-    let decodedCookie = decodeURIComponent(document.cookie);
-    let ca = decodedCookie.split(';');
-    for (let i = 0; i < ca.length; i++) {
-        let c = ca[i];
-        while (c.charAt(0) == ' ') {
-            c = c.substring(1);
-        }
-        if (c.indexOf(name) == 0) {
-            return c.substring(name.length, c.length);
+function getCookie(name) {
+    name += "=";
+    let cookies = decodeURIComponent(document.cookie).split(';');
+    for (let cookie of cookies) {
+        cookie = cookie.trim();
+        if (cookie.startsWith(name)) {
+            return cookie.substring(name.length);
         }
     }
     return "";
