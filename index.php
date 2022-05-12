@@ -326,10 +326,8 @@ function test_input($data) {
 					<div class="col-md-12">
 						<div class="panel-group">
 							<div class="panel panel-success">
-								<div class="panel-heading">
-									<h4 class="panel-title text-center">
-										<a id="toggle" data-toggle="collapse" href="#table" style="text-decoration:underline;">Show Calculations</a>
-									</h4>
+								<div id="toggleDiv" class="panel-heading text-center" data-toggle="collapse" data-target="#table" style="cursor:pointer;">
+									<h4 id="toggleText" class="panel-title" style="text-decoration:underline;">Show Calculations</h4>
 								</div>
 								<div id="table" class="panel-collapse collapse">
 									<div class="panel-body">
@@ -531,7 +529,7 @@ if (isset($registerError) || isset($loginError)) {
 $(document).ready(() => {
     $('[data-toggle="tooltip"]').tooltip();
 	
-	$("#toggle").click(() => $("#toggle").text($("#toggle").text() == "Show Calculations" ? "Hide Calculations" : "Show Calculations"));
+	$("#toggleDiv").click(() => $("#toggleText").text($("#table").is(":visible") ? "Show Calculations" : "Hide Calculations"));
 
 	$('input[type="range"]').rangeslider({
 		// Feature detection the default is `true`.
