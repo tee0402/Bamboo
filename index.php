@@ -75,7 +75,7 @@ if (isset($_POST["register"])) {
 } else if (isset($_POST["saveSpending"])) {
 	if (isset($_POST["annualIncome"]) && isset($_POST["monthlyEssentialExpenses"]) && isset($_POST["emergencyFund"]) && isset($_POST["debt"]) && isset($_POST["contributionsThisYear"]) && isset($_POST["company401kMatch"]) && isset($_POST["iraContributionsThisYear"])) {
 		$annualIncome = $monthlyEssentialExpenses = $emergencyFund = $debt = $contributionsThisYear = $company401kMatch = $iraContributionsThisYear = null;
-		$currentAge50OrOlder = isset($_POST["currentAge50OrOlder"]) ? 1 : 0;
+		$age50OrOlder = isset($_POST["age50OrOlder"]) ? 1 : 0;
 		$annualIncome = test_input($_POST["annualIncome"]);
 		$monthlyEssentialExpenses = test_input($_POST["monthlyEssentialExpenses"]);
 		$emergencyFund = test_input($_POST["emergencyFund"]);
@@ -85,7 +85,7 @@ if (isset($_POST["register"])) {
 		$iraContributionsThisYear = test_input($_POST["iraContributionsThisYear"]);
 		
 		$conn = new PDO("mysql:host=$servername;dbname=$dbname", $username, $pw);
-		$sql = "UPDATE Accounts SET CurrentAge50OrOlder=$currentAge50OrOlder, AnnualIncome=$annualIncome, MonthlyEssentialExpenses=$monthlyEssentialExpenses, EmergencyFund=$emergencyFund, Debt=$debt, ContributionsThisYear=$contributionsThisYear, Company401kMatch=$company401kMatch, IRAContributionsThisYear=$iraContributionsThisYear WHERE Email='" . $_SESSION['email'] . "'";
+		$sql = "UPDATE Accounts SET Age50OrOlder=$age50OrOlder, AnnualIncome=$annualIncome, MonthlyEssentialExpenses=$monthlyEssentialExpenses, EmergencyFund=$emergencyFund, Debt=$debt, ContributionsThisYear=$contributionsThisYear, Company401kMatch=$company401kMatch, IRAContributionsThisYear=$iraContributionsThisYear WHERE Email='" . $_SESSION['email'] . "'";
 		$conn->exec($sql);
 		
 		$conn = null;
@@ -95,7 +95,7 @@ if (isset($_POST["register"])) {
 if (isset($_SESSION["loggedIn"])) {
 	$conn = new PDO("mysql:host=$servername;dbname=$dbname", $username, $pw);
 	
-	$stmt = $conn->prepare("SELECT CurrentAge, TargetRetirementAge, BeginningBalance, AnnualSavings, AnnualSavingsIncreaseRate, ExpectedAnnualReturn, CurrentAge50OrOlder, AnnualIncome, MonthlyEssentialExpenses, EmergencyFund, Debt, ContributionsThisYear, Company401kMatch, IRAContributionsThisYear FROM Accounts WHERE Email='" . $_SESSION['email'] . "'");
+	$stmt = $conn->prepare("SELECT CurrentAge, TargetRetirementAge, BeginningBalance, AnnualSavings, AnnualSavingsIncreaseRate, ExpectedAnnualReturn, Age50OrOlder, AnnualIncome, MonthlyEssentialExpenses, EmergencyFund, Debt, ContributionsThisYear, Company401kMatch, IRAContributionsThisYear FROM Accounts WHERE Email='" . $_SESSION['email'] . "'");
 	$stmt->execute();
 	$row = $stmt->fetch();
 	if ($row["CurrentAge"] != null && $row["TargetRetirementAge"] != null && $row["BeginningBalance"] != null && $row["AnnualSavings"] != null && $row["AnnualSavingsIncreaseRate"] != null && $row["ExpectedAnnualReturn"] != null) {
@@ -106,8 +106,8 @@ if (isset($_SESSION["loggedIn"])) {
 		$_SESSION["annualSavingsIncreaseRate"] = $row["AnnualSavingsIncreaseRate"];
 		$_SESSION["expectedAnnualReturn"] = $row["ExpectedAnnualReturn"];
 	}
-	if ($row["CurrentAge50OrOlder"] != null && $row["AnnualIncome"] != null && $row["MonthlyEssentialExpenses"] != null && $row["EmergencyFund"] != null && $row["Debt"] != null && $row["ContributionsThisYear"] != null && $row["Company401kMatch"] != null && $row["IRAContributionsThisYear"] != null) {
-		$_SESSION["currentAge50OrOlder"] = $row["CurrentAge50OrOlder"];
+	if ($row["Age50OrOlder"] != null && $row["AnnualIncome"] != null && $row["MonthlyEssentialExpenses"] != null && $row["EmergencyFund"] != null && $row["Debt"] != null && $row["ContributionsThisYear"] != null && $row["Company401kMatch"] != null && $row["IRAContributionsThisYear"] != null) {
+		$_SESSION["age50OrOlder"] = $row["Age50OrOlder"];
 		$_SESSION["annualIncome"] = $row["AnnualIncome"];
 		$_SESSION["monthlyEssentialExpenses"] = $row["MonthlyEssentialExpenses"];
 		$_SESSION["emergencyFund"] = $row["EmergencyFund"];
@@ -163,15 +163,13 @@ function test_input($data) {
 	<div class="row">
 		<div class="page-header">
 			<?php
-			if (isset($_SESSION['loggedIn'])) {
-				echo '<form method="post" action="/">
+			echo isset($_SESSION['loggedIn']) ?
+			'<form method="post" action="/">
 				<button type="submit" name="logout" class="btn btn-success pull-right" style="margin-right:30px;">Logout</button>
-				</form>
-				<h5 class="pull-right" style="margin-right:20px;">' . $_SESSION["email"] . '</h5>';
-			} else {
-				echo '<button type="button" class="btn btn-success pull-right" data-toggle="modal" data-target="#register" style="margin-right:30px;">Register</button>
-				<button type="button" class="btn btn-success pull-right" data-toggle="modal" data-target="#login" style="margin-right:20px;">Login</button>';
-			}
+			</form>
+			<h5 class="pull-right" style="margin-right:20px;">' . $_SESSION["email"] . '</h5>' :
+			'<button type="button" class="btn btn-success pull-right" data-toggle="modal" data-target="#register" style="margin-right:30px;">Register</button>
+			<button type="button" class="btn btn-success pull-right" data-toggle="modal" data-target="#login" style="margin-right:20px;">Login</button>';
 			?>
 			<h1 style="margin-left:30px;"><a href="." style="text-decoration:none;"><strong style="color:#99bc20;">Bamboo</strong><img src="bamboo.png" height="33px" style="margin-left:5px;"></a></h1>
 			<h4 style="margin-left:30px;"><small>Grow your savings for financial independence or retirement</small></h4>
@@ -212,10 +210,7 @@ function test_input($data) {
 								<?php
 									if (isset($registerError)) {
 										echo "<div class='alert alert-danger'>$registerError</div>";
-									}
-								?>
-								<?php
-									if (isset($loginError)) {
+									} else if (isset($loginError)) {
 										echo "<div class='alert alert-danger'>$loginError</div>";
 									}
 								?>
@@ -241,14 +236,14 @@ function test_input($data) {
 		<div class="col-md-2">
 			<p style="color:#99bc20; font-size:1.25em; border-bottom: 1px solid; margin-bottom:5px;">Tools</p>
 			<ul class="nav nav-pills nav-stacked">
-				<li id="compoundingPill" class="active"><a data-toggle="pill" href="#compounding">Compounding</a></li>
-				<li id="spendingPill"><a data-toggle="pill" href="#spending">Spending Prioritization</a></li>
+				<li id="compoundingPill" <?php if (!isset($_POST["saveSpending"])) {echo 'class="active"';}?>><a data-toggle="pill" href="#compounding">Compounding</a></li>
+				<li id="spendingPill" <?php if (isset($_POST["saveSpending"])) {echo 'class="active"';}?>><a data-toggle="pill" href="#spending">Spending Prioritization</a></li>
 				<li id="savingPill"><a data-toggle="pill" href="#saving">Years to Retirement</a></li>
 			</ul>
 			<br>
 		</div>
 		<div class="col-md-9 tab-content">
-			<div id="compounding" class="tab-pane fade in active" ng-init="updateChart()">
+			<div id="compounding" class="tab-pane fade <?php if (!isset($_POST["saveSpending"])) {echo "in active";}?>" ng-init="updateChart()">
 				<div class="row">
 					<div class="col-md-1"></div>
 					<div class="col-md-10">
@@ -367,7 +362,7 @@ function test_input($data) {
 					</div>
 				</div>
 			</div>
-			<div id="spending" class="tab-pane fade" ng-init="updateContributions()">
+			<div id="spending" class="tab-pane fade <?php if (isset($_POST["saveSpending"])) {echo "in active";}?>" ng-init="updateContributions()">
 				<div class="row">
 					<div class="col-md-1"></div>
 					<div class="col-md-10">
@@ -383,10 +378,10 @@ function test_input($data) {
 					<div class="col-md-3">
 						<form method="post" action="/">
 							<div class="form-group">
-								<label for="currentAge50OrOlder">Current Age 50 Or Older?</label>
+								<label for="age50OrOlder">Age 50 Or Older?</label>
 								<div style="margin-bottom:-10px;">
 									<label class="switch">
-										<input id="currentAge50OrOlder" type="checkbox" class="form-control" name="currentAge50OrOlder" ng-model="currentAge50OrOlder" ng-change="updateContributions()">
+										<input id="age50OrOlder" type="checkbox" class="form-control" name="age50OrOlder" ng-model="age50OrOlder" ng-change="updateContributions()">
 										<span class="slider round"></span>
 									</label>
 								</div>
@@ -515,8 +510,9 @@ function test_input($data) {
 	<div class="row">
 		<div class="col-md-3"></div>
 		<div class="col-md-6">
-			<div class="navbar navbar-default text-center" style="padding:10px;">
-				<a href="https://www.flaticon.com/free-icons/bamboo" title="bamboo icons">Bamboo icons created by Freepik - Flaticon</a>
+			<div class="well well-sm text-center">
+				<div>GitHub: <a href="https://github.com/tee0402/Bamboo" title="GitHub">https://github.com/tee0402/Bamboo</a></div>
+				<div><a href="https://www.flaticon.com/free-icons/bamboo" title="bamboo icons">Bamboo icons created by Freepik - Flaticon</a></div>
 			</div>
 		</div>
 		<div class="col-md-3"></div>
@@ -536,10 +532,6 @@ $(document).ready(() => {
     $('[data-toggle="tooltip"]').tooltip();
 	
 	$("#toggle").click(() => $("#toggle").text($("#toggle").text() == "Show Calculations" ? "Hide Calculations" : "Show Calculations"));
-
-	$("#compoundingPill").click(() => setCookie("tab", "compounding"));
-	$("#spendingPill").click(() => setCookie("tab", "spending"));
-	$("#savingPill").click(() => setCookie("tab", "saving"));
 
 	$('input[type="range"]').rangeslider({
 		// Feature detection the default is `true`.
@@ -568,25 +560,6 @@ $(document).ready(() => {
 
 		onSlideEnd: (position, value) => {}
 	});
-
-	let tab = getCookie("tab");
-	if (tab != "") {
-		if (tab == "spending") {
-			$("#compoundingPill").removeClass("active");
-			$("#compounding").removeClass("in");
-			$("#compounding").removeClass("active");
-			$("#spendingPill").addClass("active");
-			$("#spending").addClass("in");
-			$("#spending").addClass("active");
-		} else if (tab == "saving") {
-			$("#compoundingPill").removeClass("active");
-			$("#compounding").removeClass("in");
-			$("#compounding").removeClass("active");
-			$("#savingPill").addClass("active");
-			$("#saving").addClass("in");
-			$("#saving").addClass("active");
-		}
-	}
 });
 
 let app = angular.module('myApp', []);
@@ -597,7 +570,7 @@ app.controller('myCtrl', ($scope) => {
 	$scope.annualSavings = <?php echo isset($_SESSION["annualSavings"]) ? $_SESSION["annualSavings"] : 5000 ?>;
 	$scope.annualSavingsIncreaseRate = <?php echo isset($_SESSION["annualSavingsIncreaseRate"]) ? $_SESSION["annualSavingsIncreaseRate"] : 0 ?>;
 	$scope.expectedAnnualReturn = <?php echo isset($_SESSION["expectedAnnualReturn"]) ? $_SESSION["expectedAnnualReturn"] : 6 ?>;
-	$scope.currentAge50OrOlder = <?php echo isset($_SESSION["currentAge50OrOlder"]) ? ($_SESSION["currentAge50OrOlder"] == 1 ? "true" : "false") : "false" ?>;
+	$scope.age50OrOlder = <?php echo isset($_SESSION["age50OrOlder"]) ? ($_SESSION["age50OrOlder"] == 1 ? "true" : "false") : "false" ?>;
 	$scope.annualIncome = <?php echo isset($_SESSION["annualIncome"]) ? $_SESSION["annualIncome"] : 50000 ?>;
 	$scope.monthlyEssentialExpenses = <?php echo isset($_SESSION["monthlyEssentialExpenses"]) ? $_SESSION["monthlyEssentialExpenses"] : 1000 ?>;
 	$scope.emergencyFund = <?php echo isset($_SESSION["emergencyFund"]) ? $_SESSION["emergencyFund"] : 0 ?>;
@@ -694,7 +667,7 @@ app.controller('myCtrl', ($scope) => {
 		cash -= $scope.debtContributions;
 		$scope.debtContributions = formatCurrency($scope.debtContributions);
 		
-		let iraContributionsLimit = $scope.currentAge50OrOlder ? 7000 : 6000;
+		let iraContributionsLimit = $scope.age50OrOlder ? 7000 : 6000;
 		if ($scope.iraContributionsThisYear >= iraContributionsLimit) {
 			$scope.iraContributions = 0;
 			$("#iraContributions").hide(200);
@@ -711,7 +684,7 @@ app.controller('myCtrl', ($scope) => {
 		cash -= $scope.iraContributions;
 		$scope.iraContributions = formatCurrency($scope.iraContributions);
 		
-		let company401kContributionsLimit = $scope.currentAge50OrOlder ? 27000 : 20500;
+		let company401kContributionsLimit = $scope.age50OrOlder ? 27000 : 20500;
 		if (totalCompany401kContributions >= company401kContributionsLimit) {
 			$scope.company401kContributions = 0;
 			$("#company401kContributions").hide(200);
@@ -809,22 +782,6 @@ function calculateYearsToRetirement(savingsRate) {
 		yearsToRetirement++;
 	}
 	return yearsToRetirement;
-}
-
-function setCookie(name, value) {
-    document.cookie = name + "=" + value + ";";
-}
-
-function getCookie(name) {
-    name += "=";
-    let cookies = decodeURIComponent(document.cookie).split(';');
-    for (let cookie of cookies) {
-        cookie = cookie.trim();
-        if (cookie.startsWith(name)) {
-            return cookie.substring(name.length);
-        }
-    }
-    return "";
 }
 </script>
 
