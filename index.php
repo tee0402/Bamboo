@@ -90,12 +90,26 @@ if (isset($_POST["register"])) {
 		
 		$conn = null;
 	}
+} else if (isset($_POST["saveSaving"])) {
+	if (isset($_POST["initialSavings"]) && isset($_POST["annualReturns"]) && isset($_POST["withdrawalRate"]) && isset($_POST["expensesInRetirement"])) {
+		$initialSavings = $annualReturns = $withdrawalRate = $expensesInRetirement = null;
+		$initialSavings = test_input($_POST["initialSavings"]);
+		$annualReturns = test_input($_POST["annualReturns"]);
+		$withdrawalRate = test_input($_POST["withdrawalRate"]);
+		$expensesInRetirement = test_input($_POST["expensesInRetirement"]);
+		
+		$conn = new PDO("mysql:host=$servername;dbname=$dbname", $username, $pw);
+		$sql = "UPDATE Accounts SET InitialSavings=$initialSavings, AnnualReturns=$annualReturns, WithdrawalRate=$withdrawalRate, ExpensesInRetirement=$expensesInRetirement WHERE Email='" . $_SESSION['email'] . "'";
+		$conn->exec($sql);
+		
+		$conn = null;
+	}
 }
 
 if (isset($_SESSION["loggedIn"])) {
 	$conn = new PDO("mysql:host=$servername;dbname=$dbname", $username, $pw);
 	
-	$stmt = $conn->prepare("SELECT CurrentAge, TargetRetirementAge, BeginningBalance, AnnualSavings, AnnualSavingsIncreaseRate, ExpectedAnnualReturn, Age50OrOlder, AnnualIncome, MonthlyEssentialExpenses, EmergencyFund, Debt, ContributionsThisYear, Company401kMatch, IRAContributionsThisYear FROM Accounts WHERE Email='" . $_SESSION['email'] . "'");
+	$stmt = $conn->prepare("SELECT CurrentAge, TargetRetirementAge, BeginningBalance, AnnualSavings, AnnualSavingsIncreaseRate, ExpectedAnnualReturn, Age50OrOlder, AnnualIncome, MonthlyEssentialExpenses, EmergencyFund, Debt, ContributionsThisYear, Company401kMatch, IRAContributionsThisYear, InitialSavings, AnnualReturns, WithdrawalRate, ExpensesInRetirement FROM Accounts WHERE Email='" . $_SESSION['email'] . "'");
 	$stmt->execute();
 	$row = $stmt->fetch();
 	if ($row["CurrentAge"] != null && $row["TargetRetirementAge"] != null && $row["BeginningBalance"] != null && $row["AnnualSavings"] != null && $row["AnnualSavingsIncreaseRate"] != null && $row["ExpectedAnnualReturn"] != null) {
@@ -115,6 +129,12 @@ if (isset($_SESSION["loggedIn"])) {
 		$_SESSION["contributionsThisYear"] = $row["ContributionsThisYear"];
 		$_SESSION["company401kMatch"] = $row["Company401kMatch"];
 		$_SESSION["iraContributionsThisYear"] = $row["IRAContributionsThisYear"];
+	}
+	if ($row["InitialSavings"] != null && $row["AnnualReturns"] != null && $row["WithdrawalRate"] != null && $row["ExpensesInRetirement"] != null) {
+		$_SESSION["initialSavings"] = $row["InitialSavings"];
+		$_SESSION["annualReturns"] = $row["AnnualReturns"];
+		$_SESSION["withdrawalRate"] = $row["WithdrawalRate"];
+		$_SESSION["expensesInRetirement"] = $row["ExpensesInRetirement"];
 	}
 	
 	$conn = null;
@@ -236,14 +256,14 @@ function test_input($data) {
 		<div class="col-md-2">
 			<p style="color:#99bc20; font-size:1.25em; border-bottom: 1px solid; margin-bottom:5px;">Tools</p>
 			<ul class="nav nav-pills nav-stacked">
-				<li id="compoundingPill" <?php if (!isset($_POST["saveSpending"])) {echo 'class="active"';}?>><a data-toggle="pill" href="#compounding">Compounding</a></li>
+				<li id="compoundingPill" <?php if (!isset($_POST["saveSpending"]) && !isset($_POST["saveSaving"])) {echo 'class="active"';}?>><a data-toggle="pill" href="#compounding">Compounding</a></li>
 				<li id="spendingPill" <?php if (isset($_POST["saveSpending"])) {echo 'class="active"';}?>><a data-toggle="pill" href="#spending">Spending Prioritization</a></li>
-				<li id="savingPill"><a data-toggle="pill" href="#saving">Years to Retirement</a></li>
+				<li id="savingPill" <?php if (isset($_POST["saveSaving"])) {echo 'class="active"';}?>><a data-toggle="pill" href="#saving">Years to Retirement</a></li>
 			</ul>
 			<br>
 		</div>
 		<div class="col-md-9 tab-content">
-			<div id="compounding" class="tab-pane fade <?php if (!isset($_POST["saveSpending"])) {echo "in active";}?>" ng-init="updateChart()">
+			<div id="compounding" class="tab-pane fade <?php if (!isset($_POST["saveSpending"]) && !isset($_POST["saveSaving"])) {echo "in active";}?>" ng-init="updateCompounding()">
 				<div class="row">
 					<div class="col-md-1"></div>
 					<div class="col-md-10">
@@ -263,14 +283,14 @@ function test_input($data) {
 							<div class="form-group">
 								<label for="currentAge">Current Age:</label>
 								<div class="input-group">
-									<input id="currentAge" type="number" class="form-control" name="currentAge" ng-model="currentAge" ng-change="updateChart()" min="0">
+									<input id="currentAge" type="number" class="form-control" name="currentAge" ng-model="currentAge" ng-change="updateCompounding()" min="0">
 									<span class="input-group-addon">Years</span>
 								</div>
 							</div>
 							<div class="form-group">
 								<label for="targetRetirementAge">Target Retirement Age:</label>
 								<div class="input-group">
-									<input id="targetRetirementAge" type="number" class="form-control" name="targetRetirementAge" ng-model="targetRetirementAge" ng-change="updateChart()" min="{{ currentAge }}">
+									<input id="targetRetirementAge" type="number" class="form-control" name="targetRetirementAge" ng-model="targetRetirementAge" ng-change="updateCompounding()" min="{{ currentAge }}">
 									<span class="input-group-addon">Years</span>
 								</div>
 							</div>
@@ -278,21 +298,21 @@ function test_input($data) {
 								<label for="beginningBalance">Beginning Balance:</label>
 								<div class="input-group">
 									<span class="input-group-addon"><i class="glyphicon glyphicon-usd"></i></span>
-									<input id="beginningBalance" type="number" class="form-control" name="beginningBalance" ng-model="beginningBalance" ng-change="updateChart()">
+									<input id="beginningBalance" type="number" class="form-control" name="beginningBalance" ng-model="beginningBalance" ng-change="updateCompounding()">
 								</div>
 							</div>
 							<div class="form-group">
 								<label for="annualSavings">Annual Savings:</label>
 								<div class="input-group">
 									<span class="input-group-addon"><i class="glyphicon glyphicon-usd"></i></span>
-									<input id="annualSavings" type="number" class="form-control" name="annualSavings" ng-model="annualSavings" ng-change="updateChart()">
+									<input id="annualSavings" type="number" class="form-control" name="annualSavings" ng-model="annualSavings" ng-change="updateCompounding()">
 								</div>
 							</div>
 							<div class="form-group">
 								<label for="annualSavingsIncreaseRate">Annual Savings Increase Rate:</label>
 								<a data-toggle="tooltip" title="The percentage increase in your savings amount per year"><span class="glyphicon glyphicon-info-sign"></span></a>
 								<div class="input-group">
-									<input id="annualSavingsIncreaseRate" type="number" class="form-control" name="annualSavingsIncreaseRate" ng-model="annualSavingsIncreaseRate" ng-change="updateChart()">
+									<input id="annualSavingsIncreaseRate" type="number" class="form-control" name="annualSavingsIncreaseRate" ng-model="annualSavingsIncreaseRate" ng-change="updateCompounding()">
 									<span class="input-group-addon">%</span>
 								</div>
 							</div>
@@ -300,7 +320,7 @@ function test_input($data) {
 								<label for="expectedAnnualReturn">Expected Annual Return:</label>
 								<a data-toggle="tooltip" title="This assumes that you invest all your savings. The annualized inflation-adjusted total returns of the S&P 500 since 1926 is about 7%"><span class="glyphicon glyphicon-info-sign"></span></a>
 								<div class="input-group">
-									<input id="expectedAnnualReturn" type="number" class="form-control" name="expectedAnnualReturn" ng-model="expectedAnnualReturn" ng-change="updateChart()">
+									<input id="expectedAnnualReturn" type="number" class="form-control" name="expectedAnnualReturn" ng-model="expectedAnnualReturn" ng-change="updateCompounding()">
 									<span class="input-group-addon">%</span>
 								</div>
 							</div>
@@ -360,7 +380,7 @@ function test_input($data) {
 					</div>
 				</div>
 			</div>
-			<div id="spending" class="tab-pane fade <?php if (isset($_POST["saveSpending"])) {echo "in active";}?>" ng-init="updateContributions()">
+			<div id="spending" class="tab-pane fade <?php if (isset($_POST["saveSpending"])) {echo "in active";}?>" ng-init="updateSpending()">
 				<div class="row">
 					<div class="col-md-1"></div>
 					<div class="col-md-10">
@@ -376,10 +396,10 @@ function test_input($data) {
 					<div class="col-md-3">
 						<form method="post" action="/">
 							<div class="form-group">
-								<label for="age50OrOlder">Age 50 Or Older?</label>
+								<label for="age50OrOlder">Age 50 or Older?</label>
 								<div style="margin-bottom:-10px;">
 									<label class="switch">
-										<input id="age50OrOlder" type="checkbox" class="form-control" name="age50OrOlder" ng-model="age50OrOlder" ng-change="updateContributions()">
+										<input id="age50OrOlder" type="checkbox" class="form-control" name="age50OrOlder" ng-model="age50OrOlder" ng-change="updateSpending()">
 										<span class="slider round"></span>
 									</label>
 								</div>
@@ -388,7 +408,7 @@ function test_input($data) {
 								<label for="annualIncome">Annual Income:</label>
 								<div class="input-group">
 									<span class="input-group-addon"><i class="glyphicon glyphicon-usd"></i></span>
-									<input id="annualIncome" type="number" class="form-control" name="annualIncome" ng-model="annualIncome" ng-change="updateContributions()">
+									<input id="annualIncome" type="number" class="form-control" name="annualIncome" ng-model="annualIncome" ng-change="updateSpending()" min="0">
 								</div>
 							</div>
 							<div class="form-group">
@@ -396,35 +416,35 @@ function test_input($data) {
 								<a data-toggle="tooltip" title="Rent, utilities, food, insurance, minimum payments, etc."><span class="glyphicon glyphicon-info-sign"></span></a>
 								<div class="input-group">
 									<span class="input-group-addon"><i class="glyphicon glyphicon-usd"></i></span>
-									<input id="monthlyEssentialExpenses" type="number" class="form-control" name="monthlyEssentialExpenses" ng-model="monthlyEssentialExpenses" ng-change="updateContributions()">
+									<input id="monthlyEssentialExpenses" type="number" class="form-control" name="monthlyEssentialExpenses" ng-model="monthlyEssentialExpenses" ng-change="updateSpending()" min="0">
 								</div>
 							</div>
 							<div class="form-group">
 								<label for="emergencyFund">Emergency Fund:</label>
 								<div class="input-group">
 									<span class="input-group-addon"><i class="glyphicon glyphicon-usd"></i></span>
-									<input id="emergencyFund" type="number" class="form-control" name="emergencyFund" ng-model="emergencyFund" ng-change="updateContributions()">
+									<input id="emergencyFund" type="number" class="form-control" name="emergencyFund" ng-model="emergencyFund" ng-change="updateSpending()" min="0">
 								</div>
 							</div>
 							<div class="form-group">
 								<label for="debt">Debt:</label>
 								<div class="input-group">
 									<span class="input-group-addon"><i class="glyphicon glyphicon-usd"></i></span>
-									<input id="debt" type="number" class="form-control" name="debt" ng-model="debt" ng-change="updateContributions()">
+									<input id="debt" type="number" class="form-control" name="debt" ng-model="debt" ng-change="updateSpending()" min="0">
 								</div>
 							</div>
 							<div class="form-group">
 								<label for="401kContributionsThisYear">401(k) Contributions This Year:</label>
 								<div class="input-group">
 									<span class="input-group-addon"><i class="glyphicon glyphicon-usd"></i></span>
-									<input id="contributionsThisYear" type="number" class="form-control" name="contributionsThisYear" ng-model="contributionsThisYear" ng-change="updateContributions()">
+									<input id="contributionsThisYear" type="number" class="form-control" name="contributionsThisYear" ng-model="contributionsThisYear" ng-change="updateSpending()" min="0">
 								</div>
 							</div>
 							<div class="form-group">
 								<label for="company401kMatch">Company 401(k) % Match:</label>
 								<a data-toggle="tooltip" title="The percentage of gross income that the employer matches up to. Enter 0 if your company does not match 401(k) contributions"><span class="glyphicon glyphicon-info-sign"></span></a>
 								<div class="input-group">
-									<input id="company401kMatch" type="number" class="form-control" name="company401kMatch" ng-model="company401kMatch" ng-change="updateContributions()">
+									<input id="company401kMatch" type="number" class="form-control" name="company401kMatch" ng-model="company401kMatch" ng-change="updateSpending()" min="0">
 									<span class="input-group-addon">%</span>
 								</div>
 							</div>
@@ -433,7 +453,7 @@ function test_input($data) {
 								<a data-toggle="tooltip" title="Roth and Traditional combined"><span class="glyphicon glyphicon-info-sign"></span></a>
 								<div class="input-group">
 									<span class="input-group-addon"><i class="glyphicon glyphicon-usd"></i></span>
-									<input id="iraContributionsThisYear" type="number" class="form-control" name="iraContributionsThisYear" ng-model="iraContributionsThisYear" ng-change="updateContributions()">
+									<input id="iraContributionsThisYear" type="number" class="form-control" name="iraContributionsThisYear" ng-model="iraContributionsThisYear" ng-change="updateSpending()" min="0">
 								</div>
 							</div>
 							<?php
@@ -476,7 +496,7 @@ function test_input($data) {
 					</div>
 				</div>
 			</div>
-			<div id="saving" class="tab-pane fade">
+			<div id="saving" class="tab-pane fade <?php if (isset($_POST["saveSaving"])) {echo "in active";}?>">
 				<div class="row">
 					<div class="col-md-1"></div>
 					<div class="col-md-10">
@@ -493,11 +513,56 @@ function test_input($data) {
 					<div class="col-md-12 text-center">
 						<label for="savingsRate" style="font-size:1.25em;">Savings Rate</label>
 						<a data-toggle="tooltip" title="The percentage of annual income that is saved. The current U.S. personal savings rate is 6.2%"><span class="glyphicon glyphicon-info-sign"></span></a>
-						<h1 id="sliderText" style="color:#99bc20; margin-top:0px; margin-bottom:15px;"></h1>
-						<input id="slider" type="range" value="5">
+						<h1 id="savingsRateText" style="color:#99bc20; margin-top:0px; margin-bottom:15px;">{{ savingsRateText }}</h1>
+						<input id="savingsRate" type="range" ng-model="savingsRate" ng-change="updateSaving()">
 						<label for="yearsToRetirement" style="margin-top:20px; font-size:1.875em;">Years to Retirement</label>
 						<a data-toggle="tooltip" title="Assumes no initial savings, 5% annual returns after inflation, 4% withdrawal rate, and that your expenses remain constant in retirement"><span class="glyphicon glyphicon-info-sign"></span></a>
-						<p id="yearsToRetirement" style="color:#99bc20; margin-top:-25px; font-size:6.25em;"></p>
+						<p id="yearsToRetirement" style="color:#99bc20; margin-top:-25px; font-size:6.25em;">{{ yearsToRetirement }}</p>
+						<button type="button" class="btn btn-warning" data-toggle="collapse" data-target="#assumptions">Change Assumptions</button>
+						<div class="row">
+							<div class="col-md-5"></div>
+							<div id="assumptions" class="col-md-2 panel panel-default panel-collapse collapse <?php if (isset($_POST["saveSaving"])) {echo "in";}?> panel-body">
+								<form method="post" action="/">
+									<div class="form-group">
+										<label for="initialSavings">Initial Savings:</label>
+										<a data-toggle="tooltip" title="As a percentage of current annual savings"><span class="glyphicon glyphicon-info-sign"></span></a>
+										<div class="input-group">
+											<input id="initialSavings" type="number" class="form-control" name="initialSavings" ng-model="initialSavings" ng-change="updateSaving()">
+											<span class="input-group-addon">%</span>
+										</div>
+									</div>
+									<div class="form-group">
+										<label for="annualReturns">Annual Returns:</label>
+										<a data-toggle="tooltip" title="This assumes that you invest all your savings. The annualized inflation-adjusted total returns of the S&P 500 since 1926 is about 7%"><span class="glyphicon glyphicon-info-sign"></span></a>
+										<div class="input-group">
+											<input id="annualReturns" type="number" class="form-control" name="annualReturns" ng-model="annualReturns" ng-change="updateSaving()">
+											<span class="input-group-addon">%</span>
+										</div>
+									</div>
+									<div class="form-group">
+										<label for="withdrawalRate">Withdrawal Rate:</label>
+										<div class="input-group">
+											<input id="withdrawalRate" type="number" class="form-control" name="withdrawalRate" ng-model="withdrawalRate" ng-change="updateSaving()" min="0">
+											<span class="input-group-addon">%</span>
+										</div>
+									</div>
+									<div class="form-group">
+										<label for="expensesInRetirement">Expenses in Retirement:</label>
+										<a data-toggle="tooltip" title="As a percentage of current annual expenses"><span class="glyphicon glyphicon-info-sign"></span></a>
+										<div class="input-group">
+											<input id="expensesInRetirement" type="number" class="form-control" name="expensesInRetirement" ng-model="expensesInRetirement" ng-change="updateSaving()" min="0">
+											<span class="input-group-addon">%</span>
+										</div>
+									</div>
+									<?php
+									if (isset($_SESSION['loggedIn'])) {
+										echo '<button type="submit" name="saveSaving" class="btn btn-success">Save</button><br><br><br>';
+									}
+									?>
+								</form>
+							</div>
+							<div class="col-md-5"></div>
+						</div>
 					</div>
 				</div>
 			</div>
@@ -518,6 +583,11 @@ function test_input($data) {
 </div>
 
 <script>
+const company401kContributionsLimitUnder50 = 20500;
+const company401kContributionsLimit50OrOlder = 27000;
+const iraContributionsLimitUnder50 = 6000;
+const iraContributionsLimit50OrOlder = 7000;
+
 <?php
 if (isset($registerError) || isset($loginError)) {
 	echo "$(document).ready(function() {
@@ -532,35 +602,11 @@ $(document).ready(() => {
 	$("#toggleDiv").click(() => $("#toggleText").text($("#table").is(":visible") ? "Show Calculations" : "Hide Calculations"));
 
 	$('input[type="range"]').rangeslider({
-		// Feature detection the default is `true`.
-		// Set this to `false` if you want to use
-		// the polyfill also in Browsers which support
-		// the native <input type="range"> element.
-		polyfill: false,
-
-		// Default CSS classes
-		rangeClass: 'rangeslider',
-		disabledClass: 'rangeslider--disabled',
-		horizontalClass: 'rangeslider--horizontal',
-		verticalClass: 'rangeslider--vertical',
-		fillClass: 'rangeslider__fill',
-		handleClass: 'rangeslider__handle',
-
-		onInit: () => {
-			$("#sliderText").text($("#slider").val() + "%");
-			$("#yearsToRetirement").text(calculateYearsToRetirement(Number($("#slider").val())));
-		},
-
-		onSlide: (position, value) => {
-			$("#sliderText").text($("#slider").val() + "%");
-			$("#yearsToRetirement").text(calculateYearsToRetirement(Number($("#slider").val())));
-		},
-
-		onSlideEnd: (position, value) => {}
+		polyfill: false
 	});
 });
 
-let app = angular.module('myApp', []);
+const app = angular.module('myApp', []);
 app.controller('myCtrl', ($scope) => {
 	$scope.currentAge = <?php echo isset($_SESSION["currentAge"]) ? $_SESSION["currentAge"] : 25 ?>;
 	$scope.targetRetirementAge = <?php echo isset($_SESSION["targetRetirementAge"]) ? $_SESSION["targetRetirementAge"] : 65 ?>;
@@ -576,15 +622,20 @@ app.controller('myCtrl', ($scope) => {
 	$scope.contributionsThisYear = <?php echo isset($_SESSION["contributionsThisYear"]) ? $_SESSION["contributionsThisYear"] : 0 ?>;
 	$scope.company401kMatch = <?php echo isset($_SESSION["company401kMatch"]) ? $_SESSION["company401kMatch"] : 5 ?>;
 	$scope.iraContributionsThisYear = <?php echo isset($_SESSION["iraContributionsThisYear"]) ? $_SESSION["iraContributionsThisYear"] : 0 ?>;
-	$scope.updateChart = () => {
-		let chartLabels = [];
-		let chartData = [];
-		let tableData = [];
+	$scope.savingsRate = <?php echo isset($_SESSION["savingsRate"]) ? $_SESSION["savingsRate"] : 5 ?>;
+	$scope.initialSavings = <?php echo isset($_SESSION["initialSavings"]) ? $_SESSION["initialSavings"] : 0 ?>;
+	$scope.annualReturns = <?php echo isset($_SESSION["annualReturns"]) ? $_SESSION["annualReturns"] : 5 ?>;
+	$scope.withdrawalRate = <?php echo isset($_SESSION["withdrawalRate"]) ? $_SESSION["withdrawalRate"] : 4 ?>;
+	$scope.expensesInRetirement = <?php echo isset($_SESSION["expensesInRetirement"]) ? $_SESSION["expensesInRetirement"] : 100 ?>;
+	$scope.updateCompounding = () => {
+		const chartLabels = [];
+		const chartData = [];
+		const tableData = [];
 		let beginningBalance = readNumber($scope.beginningBalance);
 		let annualSavings = readNumber($scope.annualSavings);
-		let expectedAnnualReturn = $scope.expectedAnnualReturn / 100;
+		const expectedAnnualReturn = $scope.expectedAnnualReturn / 100;
 		for (let age = $scope.currentAge; age <= $scope.targetRetirementAge; age++) {
-			let interest = beginningBalance * expectedAnnualReturn;
+			const interest = beginningBalance * expectedAnnualReturn;
 			chartLabels.push(age);
 			chartData.push(beginningBalance.toFixed(2));
 			tableData.push({
@@ -606,21 +657,21 @@ app.controller('myCtrl', ($scope) => {
 		chart.update();
 		$scope.tableData = tableData;
 	};
-	$scope.updateContributions = () => {
+	$scope.updateSpending = () => {
 		if ($scope.monthlyEssentialExpenses > 0) {
 			$("#essentialExpenses").show(200);
 		} else {
 			$("#essentialExpenses").hide(200);
 		}
 		
-		let idealEmergencyFund = $scope.monthlyEssentialExpenses * 6;
+		const idealEmergencyFund = $scope.monthlyEssentialExpenses * 6;
 		let cash = $scope.annualIncome - $scope.monthlyEssentialExpenses * 12;
 		if ($scope.emergencyFund >= idealEmergencyFund) {
 			$scope.emergencyFundContributions = 0;
 			$("#emergencyFundContributions").hide(200);
 		} else {
 			if (cash > 0) {
-				let emergencyFundTopOff = idealEmergencyFund - $scope.emergencyFund;
+				const emergencyFundTopOff = idealEmergencyFund - $scope.emergencyFund;
 				$scope.emergencyFundContributions = cash >= emergencyFundTopOff ? emergencyFundTopOff : cash;
 				$("#emergencyFundContributions").show(200);
 			} else {
@@ -631,14 +682,13 @@ app.controller('myCtrl', ($scope) => {
 		cash -= $scope.emergencyFundContributions;
 		$scope.emergencyFundContributions = formatCurrency($scope.emergencyFundContributions);
 		
-		let company401kMatch = $scope.annualIncome * ($scope.company401kMatch / 100);
-		let totalCompany401kContributions;
+		const company401kMatch = $scope.annualIncome * ($scope.company401kMatch / 100);
 		if ($scope.contributionsThisYear >= company401kMatch) {
 			$scope.company401kMatchContributions = 0;
 			$("#company401kMatchContributions").hide(200);
 		} else {
 			if (cash > 0) {
-				let company401kMatchTopOff = company401kMatch - $scope.contributionsThisYear;
+				const company401kMatchTopOff = company401kMatch - $scope.contributionsThisYear;
 				$scope.company401kMatchContributions = cash >= company401kMatchTopOff ? company401kMatchTopOff : cash;
 				$("#company401kMatchContributions").show(200);
 			} else {
@@ -646,7 +696,7 @@ app.controller('myCtrl', ($scope) => {
 				$("#company401kMatchContributions").hide(200);
 			}
 		}
-		totalCompany401kContributions = $scope.contributionsThisYear + $scope.company401kMatchContributions;
+		const totalCompany401kContributions = $scope.contributionsThisYear + $scope.company401kMatchContributions;
 		cash -= $scope.company401kMatchContributions;
 		$scope.company401kMatchContributions = formatCurrency($scope.company401kMatchContributions);
 		
@@ -665,13 +715,13 @@ app.controller('myCtrl', ($scope) => {
 		cash -= $scope.debtContributions;
 		$scope.debtContributions = formatCurrency($scope.debtContributions);
 		
-		let iraContributionsLimit = $scope.age50OrOlder ? 7000 : 6000;
+		const iraContributionsLimit = $scope.age50OrOlder ? iraContributionsLimit50OrOlder : iraContributionsLimitUnder50;
 		if ($scope.iraContributionsThisYear >= iraContributionsLimit) {
 			$scope.iraContributions = 0;
 			$("#iraContributions").hide(200);
 		} else {
 			if (cash > 0) {
-				let iraTopOff = iraContributionsLimit - $scope.iraContributionsThisYear;
+				const iraTopOff = iraContributionsLimit - $scope.iraContributionsThisYear;
 				$scope.iraContributions = cash >= iraTopOff ? iraTopOff : cash;
 				$("#iraContributions").show(200);
 			} else {
@@ -682,13 +732,13 @@ app.controller('myCtrl', ($scope) => {
 		cash -= $scope.iraContributions;
 		$scope.iraContributions = formatCurrency($scope.iraContributions);
 		
-		let company401kContributionsLimit = $scope.age50OrOlder ? 27000 : 20500;
+		const company401kContributionsLimit = $scope.age50OrOlder ? company401kContributionsLimit50OrOlder : company401kContributionsLimitUnder50;
 		if (totalCompany401kContributions >= company401kContributionsLimit) {
 			$scope.company401kContributions = 0;
 			$("#company401kContributions").hide(200);
 		} else {
 			if (cash > 0) {
-				let company401kTopOff = company401kContributionsLimit - totalCompany401kContributions;
+				const company401kTopOff = company401kContributionsLimit - totalCompany401kContributions;
 				$scope.company401kContributions = cash >= company401kTopOff ? company401kTopOff : cash;
 				$("#company401kContributions").show(200);
 			} else {
@@ -708,13 +758,35 @@ app.controller('myCtrl', ($scope) => {
 		}
 		$scope.cash = formatCurrency($scope.cash);
 	};
+	$scope.updateSaving = () => {
+		$scope.savingsRateText = $scope.savingsRate + "%";
+		if ($scope.savingsRate == 0) {
+			$scope.yearsToRetirement = "Infinite";
+		} else {
+			const savings = $scope.savingsRate;
+			const expenses = (100 - $scope.savingsRate) * ($scope.expensesInRetirement / 100);
+			let portfolioValue = $scope.initialSavings / 100 * savings;
+			const annualReturns = $scope.annualReturns / 100;
+			const withdrawalRate = $scope.withdrawalRate / 100;
+			let withdrawal = 0;
+			let yearsToRetirement = 0;
+			while (withdrawal < expenses) {
+				portfolioValue += savings;
+				portfolioValue += portfolioValue * annualReturns;
+				withdrawal = portfolioValue * withdrawalRate;
+				yearsToRetirement++;
+			}
+			$scope.yearsToRetirement = yearsToRetirement;
+		}
+	};
+	$scope.updateSaving();
 });
 
 Chart.defaults.global.elements.point.hitRadius = 15;
 Chart.defaults.global.legend.display = false;
 Chart.defaults.global.tooltips.displayColors = false;
 
-let chart = new Chart(document.getElementById("myChart").getContext("2d"), {
+const chart = new Chart(document.getElementById("myChart").getContext("2d"), {
     type: "line",
     data: {
         datasets: [{
@@ -761,27 +833,6 @@ function readNumber(number) {
 function formatCurrency(number) {
 	return number.toLocaleString("en-US", {style:"currency", currency:"USD"});
 }
-
-function calculateYearsToRetirement(savingsRate) {
-	if (savingsRate == 0) {
-		return "Infinite";
-	}
-	let savings = savingsRate;
-	let expenses = 100 - savingsRate;
-	let portfolioValue = 0;
-	let annualReturn = 0.05;
-	let withdrawalRate = 0.04;
-	let withdrawal = 0;
-	let yearsToRetirement = 0;
-	while (withdrawal < expenses) {
-		portfolioValue += savings;
-		portfolioValue += portfolioValue * annualReturn;
-		withdrawal = portfolioValue * withdrawalRate;
-		yearsToRetirement++;
-	}
-	return yearsToRetirement;
-}
 </script>
-
 </body>
 </html>
