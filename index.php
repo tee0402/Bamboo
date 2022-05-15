@@ -151,14 +151,15 @@ function hash_password($password, $salt) {
 	<link rel="icon" type="image/png" href="bamboo.png" />
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
 	<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
-	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/rangeslider.js/2.3.0/rangeslider.min.css">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/rangeslider.js/2.3.3/rangeslider.min.css">
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
 	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
 	<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.min.js"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.6.0/Chart.bundle.js"></script>
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/rangeslider.js/2.3.0/rangeslider.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/rangeslider.js/2.3.3/rangeslider.min.js"></script>
 	<title>Bamboo - Personal Finance Utility</title>
 	<style>
+	body { overflow-y: scroll; }
 	.nav-pills > li.active > a, .nav-pills > li.active > a:hover, .nav-pills > li.active > a:focus { background-color: #99bc20; }
 	.material-icons.md-16 { font-size: 16px; }
 	.switch { position: relative; display: inline-block; width: 50px; height: 26px; }
@@ -170,6 +171,7 @@ function hash_password($password, $salt) {
 	input:checked + .slider:before { -webkit-transform: translateX(24px); -ms-transform: translateX(24px); transform: translateX(24px); }
 	.slider.round { border-radius: 26px; }
 	.slider.round:before { border-radius: 50%; }
+	.rangeslider__fill { background: #99bc20; }
 	</style>
 </head>
 <body>
@@ -338,37 +340,35 @@ function hash_password($password, $salt) {
 				</div>
 				<br>
 				<div class="row">
-					<div class="col-md-12">
-						<div class="panel-group">
-							<div class="panel panel-success">
-								<div id="toggleDiv" class="panel-heading text-center" data-toggle="collapse" data-target="#table" style="cursor:pointer;">
-									<h4 id="toggleText" class="panel-title" style="text-decoration:underline;">Show Calculations</h4>
-								</div>
-								<div id="table" class="panel-collapse collapse">
-									<div class="panel-body">
-										<div class="col-md-3"></div>
-										<div class="col-md-6">
-											<div class="table-responsive">
-												<table class="table table-striped table-bordered table-hover table-condensed">
-													<tr>
-														<th>Age</th>
-														<th>Beginning Balance</th>
-														<th>Interest</th>
-														<th>Savings</th>
-														<th>Ending Balance</th>
-													</tr>
-													<tr ng-repeat="row in tableData">
-														<td>{{ row.age }}</td>
-														<td>{{ row.beginningBalance }}</td>
-														<td>{{ row.interest }}</td>
-														<td>{{ row.savings }}</td>
-														<td>{{ row.endingBalance }}</td>
-													</tr>
-												</table>
-											</div>
+					<div class="panel-group">
+						<div class="panel panel-success">
+							<div id="toggleDiv" class="panel-heading text-center" data-toggle="collapse" data-target="#table" style="cursor:pointer;">
+								<h4 id="toggleText" class="panel-title" style="text-decoration:underline;">Show Calculations</h4>
+							</div>
+							<div id="table" class="panel-collapse collapse">
+								<div class="panel-body">
+									<div class="col-md-3"></div>
+									<div class="col-md-6">
+										<div class="table-responsive">
+											<table class="table table-striped table-bordered table-hover table-condensed">
+												<tr>
+													<th>Age</th>
+													<th>Beginning Balance</th>
+													<th>Interest</th>
+													<th>Savings</th>
+													<th>Ending Balance</th>
+												</tr>
+												<tr ng-repeat="row in tableData">
+													<td>{{ row.age }}</td>
+													<td>{{ row.beginningBalance }}</td>
+													<td>{{ row.interest }}</td>
+													<td>{{ row.savings }}</td>
+													<td>{{ row.endingBalance }}</td>
+												</tr>
+											</table>
 										</div>
-										<div class="col-md-3"></div>
 									</div>
+									<div class="col-md-3"></div>
 								</div>
 							</div>
 						</div>
@@ -491,7 +491,7 @@ function hash_password($password, $salt) {
 					</div>
 				</div>
 			</div>
-			<div id="saving" class="tab-pane fade <?php if (isset($_POST["saveSaving"])) {echo "in active";}?>">
+			<div id="saving" class="tab-pane fade <?php if (isset($_POST["saveSaving"])) {echo "in active";}?>" ng-init="updateSaving()">
 				<div class="row">
 					<div class="col-md-1"></div>
 					<div class="col-md-10">
@@ -504,60 +504,58 @@ function hash_password($password, $salt) {
 					</div>
 					<div class="col-md-1"></div>
 				</div>
-				<div class="row">
-					<div class="col-md-12 text-center">
-						<label for="savingsRate" style="font-size:1.25em;">Savings Rate</label>
-						<a data-toggle="tooltip" title="The percentage of annual income that is saved. The current U.S. personal savings rate is 6.2%"><span class="glyphicon glyphicon-info-sign"></span></a>
-						<h1 id="savingsRateText" style="color:#99bc20; margin-top:0px; margin-bottom:15px;">{{ savingsRateText }}</h1>
-						<input id="savingsRate" type="range" ng-model="savingsRate" ng-change="updateSaving()">
-						<label for="yearsToRetirement" style="margin-top:20px; font-size:1.875em;">Years to Retirement</label>
-						<a data-toggle="tooltip" title="Assumes no initial savings, 5% annual returns after inflation, 4% withdrawal rate, and that your expenses remain constant in retirement"><span class="glyphicon glyphicon-info-sign"></span></a>
-						<p id="yearsToRetirement" style="color:#99bc20; margin-top:-25px; font-size:6.25em;">{{ yearsToRetirement }}</p>
-						<button type="button" class="btn btn-warning" data-toggle="collapse" data-target="#assumptions">Change Assumptions</button>
-						<div class="row">
-							<div class="col-md-5"></div>
-							<div id="assumptions" class="col-md-2 panel panel-default panel-collapse collapse <?php if (isset($_POST["saveSaving"])) {echo "in";}?> panel-body">
-								<form method="post" action="/">
-									<div class="form-group">
-										<label for="initialSavings">Initial Savings:</label>
-										<a data-toggle="tooltip" title="As a percentage of current annual savings"><span class="glyphicon glyphicon-info-sign"></span></a>
-										<div class="input-group">
-											<input id="initialSavings" type="number" class="form-control" name="initialSavings" ng-model="initialSavings" ng-change="updateSaving()">
-											<span class="input-group-addon">%</span>
-										</div>
+				<div class="row text-center">
+					<label for="savingsRate" style="font-size:1.25em;">Savings Rate</label>
+					<a data-toggle="tooltip" title="The percentage of annual income that is saved. The current U.S. personal savings rate is 6.2%"><span class="glyphicon glyphicon-info-sign"></span></a>
+					<h1 id="savingsRateText" style="color:#99bc20; margin-top:0px; margin-bottom:15px;">{{ savingsRateText }}</h1>
+					<input id="savingsRate" type="range" ng-model="savingsRate" ng-change="updateSaving()">
+					<label for="yearsToRetirement" style="margin-top:20px; font-size:1.875em;">Years to Retirement</label>
+					<a data-toggle="tooltip" title="Assumes no initial savings, 5% annual returns after inflation, 4% withdrawal rate, and that your expenses remain constant in retirement"><span class="glyphicon glyphicon-info-sign"></span></a>
+					<p id="yearsToRetirement" style="color:#99bc20; margin-top:-25px; font-size:6.25em;">{{ yearsToRetirement }}</p>
+					<button type="button" class="btn btn-warning" data-toggle="collapse" data-target="#assumptions">Change Assumptions</button>
+					<div class="row">
+						<div class="col-md-5"></div>
+						<div id="assumptions" class="col-md-2 panel panel-default panel-collapse collapse <?php if (isset($_POST["saveSaving"])) {echo "in";}?> panel-body">
+							<form method="post" action="/">
+								<div class="form-group">
+									<label for="initialSavings">Initial Savings:</label>
+									<a data-toggle="tooltip" title="As a percentage of current annual savings"><span class="glyphicon glyphicon-info-sign"></span></a>
+									<div class="input-group">
+										<input id="initialSavings" type="number" class="form-control" name="initialSavings" ng-model="initialSavings" ng-change="updateSaving()">
+										<span class="input-group-addon">%</span>
 									</div>
-									<div class="form-group">
-										<label for="annualReturns">Annual Returns:</label>
-										<a data-toggle="tooltip" title="This assumes that you invest all your savings. The annualized inflation-adjusted total returns of the S&P 500 since 1926 is about 7%"><span class="glyphicon glyphicon-info-sign"></span></a>
-										<div class="input-group">
-											<input id="annualReturns" type="number" class="form-control" name="annualReturns" ng-model="annualReturns" ng-change="updateSaving()">
-											<span class="input-group-addon">%</span>
-										</div>
+								</div>
+								<div class="form-group">
+									<label for="annualReturns">Annual Returns:</label>
+									<a data-toggle="tooltip" title="This assumes that you invest all your savings. The annualized inflation-adjusted total returns of the S&P 500 since 1926 is about 7%"><span class="glyphicon glyphicon-info-sign"></span></a>
+									<div class="input-group">
+										<input id="annualReturns" type="number" class="form-control" name="annualReturns" ng-model="annualReturns" ng-change="updateSaving()">
+										<span class="input-group-addon">%</span>
 									</div>
-									<div class="form-group">
-										<label for="withdrawalRate">Withdrawal Rate:</label>
-										<div class="input-group">
-											<input id="withdrawalRate" type="number" class="form-control" name="withdrawalRate" ng-model="withdrawalRate" ng-change="updateSaving()" min="0">
-											<span class="input-group-addon">%</span>
-										</div>
+								</div>
+								<div class="form-group">
+									<label for="withdrawalRate">Withdrawal Rate:</label>
+									<div class="input-group">
+										<input id="withdrawalRate" type="number" class="form-control" name="withdrawalRate" ng-model="withdrawalRate" ng-change="updateSaving()" min="0">
+										<span class="input-group-addon">%</span>
 									</div>
-									<div class="form-group">
-										<label for="expensesInRetirement">Expenses in Retirement:</label>
-										<a data-toggle="tooltip" title="As a percentage of current annual expenses"><span class="glyphicon glyphicon-info-sign"></span></a>
-										<div class="input-group">
-											<input id="expensesInRetirement" type="number" class="form-control" name="expensesInRetirement" ng-model="expensesInRetirement" ng-change="updateSaving()" min="0">
-											<span class="input-group-addon">%</span>
-										</div>
+								</div>
+								<div class="form-group">
+									<label for="expensesInRetirement">Expenses in Retirement:</label>
+									<a data-toggle="tooltip" title="As a percentage of current annual expenses"><span class="glyphicon glyphicon-info-sign"></span></a>
+									<div class="input-group">
+										<input id="expensesInRetirement" type="number" class="form-control" name="expensesInRetirement" ng-model="expensesInRetirement" ng-change="updateSaving()" min="0">
+										<span class="input-group-addon">%</span>
 									</div>
-									<?php
-									if (isset($_SESSION['loggedIn'])) {
-										echo '<button type="submit" name="saveSaving" class="btn btn-success">Save</button><br><br><br>';
-									}
-									?>
-								</form>
-							</div>
-							<div class="col-md-5"></div>
+								</div>
+								<?php
+								if (isset($_SESSION['loggedIn'])) {
+									echo '<button type="submit" name="saveSaving" class="btn btn-success">Save</button><br><br><br>';
+								}
+								?>
+							</form>
 						</div>
+						<div class="col-md-5"></div>
 					</div>
 				</div>
 			</div>
@@ -774,7 +772,6 @@ app.controller('myCtrl', ($scope) => {
 			$scope.yearsToRetirement = yearsToRetirement;
 		}
 	};
-	$scope.updateSaving();
 });
 
 Chart.defaults.global.elements.point.hitRadius = 15;
