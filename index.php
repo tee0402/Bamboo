@@ -1,24 +1,22 @@
 <?php
 session_start();
 
-$servername = "db5007492839.hosting-data.io";
-$dbname = "dbs6173134";
-$username = "dbu416653";
-$pw = "bamboomysqlpassword";
+$mysqlServer = "db5007492839.hosting-data.io";
+$mysqlDb = "dbs6173134";
+$mysqlUsername = "dbu416653";
+$mysqlPassword = "bamboomysqlpassword";
 
 if (isset($_POST["register"])) {
 	if (isset($_POST["registerEmailAddress"]) && isset($_POST["registerPassword"]) && strlen($_POST["registerPassword"]) >= 8) {
-		$email = $password = "";
-		$email = test_input($_POST["registerEmailAddress"]);
-		$password = test_input($_POST["registerPassword"]);
+		$email = test_string($_POST["registerEmailAddress"]);
+		$password = test_string($_POST["registerPassword"]);
 		
 		$salt = bin2hex(random_bytes(32));
-		$hash = hash_pbkdf2("sha256", $password, $salt, 10000);
+		$hash = hash_password($password, $salt);
 		
 		try {
-			$conn = new PDO("mysql:host=$servername;dbname=$dbname", $username, $pw);
-			$sql = "INSERT INTO Accounts (Email, Password, Salt) VALUES ('$email', '$hash', '$salt')";
-			$result = $conn->exec($sql);
+			$conn = new PDO("mysql:host=$mysqlServer;dbname=$mysqlDb", $mysqlUsername, $mysqlPassword);
+			$result = $conn->exec("INSERT INTO Accounts (Email, Password, Salt) VALUES ('$email', '$hash', '$salt')");
 			$_SESSION["loggedIn"] = true;
 			$_SESSION["email"] = $email;
 			$conn = null;
@@ -28,86 +26,75 @@ if (isset($_POST["register"])) {
 	}
 } else if (isset($_POST["login"])) {
 	if (isset($_POST["loginEmailAddress"]) && isset($_POST["loginPassword"])) {
-		$email = $password = $salt = $hashActual = $hashTry = "";
-		$email = test_input($_POST["loginEmailAddress"]);
-		$password = test_input($_POST["loginPassword"]);
+		$email = test_string($_POST["loginEmailAddress"]);
+		$password = test_string($_POST["loginPassword"]);
 		
-		$conn = new PDO("mysql:host=$servername;dbname=$dbname", $username, $pw);
+		$conn = new PDO("mysql:host=$mysqlServer;dbname=$mysqlDb", $mysqlUsername, $mysqlPassword);
 	
 		$stmt = $conn->prepare("SELECT Password, Salt FROM Accounts WHERE Email='$email'");
 		$stmt->execute();
 		$row = $stmt->fetch();
 	
-		if (($row !== false) && ($stmt->rowCount() > 0)) {
+		$hashTry = $hashActual = "";
+		if ($row !== false && $stmt->rowCount() === 1) {
 			$hashActual = $row["Password"];
 			$salt = $row["Salt"];
+			$hashTry = hash_password($password, $salt);
 		}
-		$hashTry = hash_pbkdf2("sha256", $password, $salt, 10000);
-	
-		if ($hashTry === $hashActual) {
+		$conn = null;
+		if ($hashTry != "" && $hashActual != "" && $hashTry === $hashActual) {
 			$_SESSION["loggedIn"] = true;
 			$_SESSION["email"] = $email;
 		} else {
 			$loginError = "Incorrect email or password. Please try again.";
 		}
-
-		$conn = null;
 	}
 } else if (isset($_POST["logout"])) {
 	session_unset();
 	session_destroy();
 } else if (isset($_POST["saveCompounding"])) {
 	if (isset($_POST["currentAge"]) && isset($_POST["targetRetirementAge"]) && isset($_POST["beginningBalance"]) && isset($_POST["annualSavings"]) && isset($_POST["annualSavingsIncreaseRate"]) && isset($_POST["expectedAnnualReturn"])) {
-		$currentAge = $targetRetirementAge = $beginningBalance = $annualSavings = $annualSavingsIncreaseRate = $expectedAnnualReturn = null;
-		$currentAge = test_input($_POST["currentAge"]);
-		$targetRetirementAge = test_input($_POST["targetRetirementAge"]);
-		$beginningBalance = test_input($_POST["beginningBalance"]);
-		$annualSavings = test_input($_POST["annualSavings"]);
-		$annualSavingsIncreaseRate = test_input($_POST["annualSavingsIncreaseRate"]);
-		$expectedAnnualReturn = test_input($_POST["expectedAnnualReturn"]);
+		$currentAge = test_number($_POST["currentAge"]);
+		$targetRetirementAge = test_number($_POST["targetRetirementAge"]);
+		$beginningBalance = test_number($_POST["beginningBalance"]);
+		$annualSavings = test_number($_POST["annualSavings"]);
+		$annualSavingsIncreaseRate = test_number($_POST["annualSavingsIncreaseRate"]);
+		$expectedAnnualReturn = test_number($_POST["expectedAnnualReturn"]);
 		
-		$conn = new PDO("mysql:host=$servername;dbname=$dbname", $username, $pw);
-		$sql = "UPDATE Accounts SET CurrentAge=$currentAge, TargetRetirementAge=$targetRetirementAge, BeginningBalance=$beginningBalance, AnnualSavings=$annualSavings, AnnualSavingsIncreaseRate=$annualSavingsIncreaseRate, ExpectedAnnualReturn=$expectedAnnualReturn WHERE Email='" . $_SESSION['email'] . "'";
-		$conn->exec($sql);
-		
+		$conn = new PDO("mysql:host=$mysqlServer;dbname=$mysqlDb", $mysqlUsername, $mysqlPassword);
+		$conn->exec("UPDATE Accounts SET CurrentAge=$currentAge, TargetRetirementAge=$targetRetirementAge, BeginningBalance=$beginningBalance, AnnualSavings=$annualSavings, AnnualSavingsIncreaseRate=$annualSavingsIncreaseRate, ExpectedAnnualReturn=$expectedAnnualReturn WHERE Email='" . $_SESSION['email'] . "'");
 		$conn = null;
 	}
 } else if (isset($_POST["saveSpending"])) {
 	if (isset($_POST["annualIncome"]) && isset($_POST["monthlyEssentialExpenses"]) && isset($_POST["emergencyFund"]) && isset($_POST["debt"]) && isset($_POST["contributionsThisYear"]) && isset($_POST["company401kMatch"]) && isset($_POST["iraContributionsThisYear"])) {
-		$annualIncome = $monthlyEssentialExpenses = $emergencyFund = $debt = $contributionsThisYear = $company401kMatch = $iraContributionsThisYear = null;
 		$age50OrOlder = isset($_POST["age50OrOlder"]) ? 1 : 0;
-		$annualIncome = test_input($_POST["annualIncome"]);
-		$monthlyEssentialExpenses = test_input($_POST["monthlyEssentialExpenses"]);
-		$emergencyFund = test_input($_POST["emergencyFund"]);
-		$debt = test_input($_POST["debt"]);
-		$contributionsThisYear = test_input($_POST["contributionsThisYear"]);
-		$company401kMatch = test_input($_POST["company401kMatch"]);
-		$iraContributionsThisYear = test_input($_POST["iraContributionsThisYear"]);
+		$annualIncome = test_number($_POST["annualIncome"]);
+		$monthlyEssentialExpenses = test_number($_POST["monthlyEssentialExpenses"]);
+		$emergencyFund = test_number($_POST["emergencyFund"]);
+		$debt = test_number($_POST["debt"]);
+		$contributionsThisYear = test_number($_POST["contributionsThisYear"]);
+		$company401kMatch = test_number($_POST["company401kMatch"]);
+		$iraContributionsThisYear = test_number($_POST["iraContributionsThisYear"]);
 		
-		$conn = new PDO("mysql:host=$servername;dbname=$dbname", $username, $pw);
-		$sql = "UPDATE Accounts SET Age50OrOlder=$age50OrOlder, AnnualIncome=$annualIncome, MonthlyEssentialExpenses=$monthlyEssentialExpenses, EmergencyFund=$emergencyFund, Debt=$debt, ContributionsThisYear=$contributionsThisYear, Company401kMatch=$company401kMatch, IRAContributionsThisYear=$iraContributionsThisYear WHERE Email='" . $_SESSION['email'] . "'";
-		$conn->exec($sql);
-		
+		$conn = new PDO("mysql:host=$mysqlServer;dbname=$mysqlDb", $mysqlUsername, $mysqlPassword);
+		$conn->exec("UPDATE Accounts SET Age50OrOlder=$age50OrOlder, AnnualIncome=$annualIncome, MonthlyEssentialExpenses=$monthlyEssentialExpenses, EmergencyFund=$emergencyFund, Debt=$debt, ContributionsThisYear=$contributionsThisYear, Company401kMatch=$company401kMatch, IRAContributionsThisYear=$iraContributionsThisYear WHERE Email='" . $_SESSION['email'] . "'");
 		$conn = null;
 	}
 } else if (isset($_POST["saveSaving"])) {
 	if (isset($_POST["initialSavings"]) && isset($_POST["annualReturns"]) && isset($_POST["withdrawalRate"]) && isset($_POST["expensesInRetirement"])) {
-		$initialSavings = $annualReturns = $withdrawalRate = $expensesInRetirement = null;
-		$initialSavings = test_input($_POST["initialSavings"]);
-		$annualReturns = test_input($_POST["annualReturns"]);
-		$withdrawalRate = test_input($_POST["withdrawalRate"]);
-		$expensesInRetirement = test_input($_POST["expensesInRetirement"]);
+		$initialSavings = test_number($_POST["initialSavings"]);
+		$annualReturns = test_number($_POST["annualReturns"]);
+		$withdrawalRate = test_number($_POST["withdrawalRate"]);
+		$expensesInRetirement = test_number($_POST["expensesInRetirement"]);
 		
-		$conn = new PDO("mysql:host=$servername;dbname=$dbname", $username, $pw);
-		$sql = "UPDATE Accounts SET InitialSavings=$initialSavings, AnnualReturns=$annualReturns, WithdrawalRate=$withdrawalRate, ExpensesInRetirement=$expensesInRetirement WHERE Email='" . $_SESSION['email'] . "'";
-		$conn->exec($sql);
-		
+		$conn = new PDO("mysql:host=$mysqlServer;dbname=$mysqlDb", $mysqlUsername, $mysqlPassword);
+		$conn->exec("UPDATE Accounts SET InitialSavings=$initialSavings, AnnualReturns=$annualReturns, WithdrawalRate=$withdrawalRate, ExpensesInRetirement=$expensesInRetirement WHERE Email='" . $_SESSION['email'] . "'");
 		$conn = null;
 	}
 }
 
 if (isset($_SESSION["loggedIn"])) {
-	$conn = new PDO("mysql:host=$servername;dbname=$dbname", $username, $pw);
+	$conn = new PDO("mysql:host=$mysqlServer;dbname=$mysqlDb", $mysqlUsername, $mysqlPassword);
 	
 	$stmt = $conn->prepare("SELECT CurrentAge, TargetRetirementAge, BeginningBalance, AnnualSavings, AnnualSavingsIncreaseRate, ExpectedAnnualReturn, Age50OrOlder, AnnualIncome, MonthlyEssentialExpenses, EmergencyFund, Debt, ContributionsThisYear, Company401kMatch, IRAContributionsThisYear, InitialSavings, AnnualReturns, WithdrawalRate, ExpensesInRetirement FROM Accounts WHERE Email='" . $_SESSION['email'] . "'");
 	$stmt->execute();
@@ -136,15 +123,23 @@ if (isset($_SESSION["loggedIn"])) {
 		$_SESSION["withdrawalRate"] = $row["WithdrawalRate"];
 		$_SESSION["expensesInRetirement"] = $row["ExpensesInRetirement"];
 	}
-	
 	$conn = null;
 }
 
-function test_input($data) {
+function test_string($data) {
   $data = trim($data);
   $data = stripslashes($data);
   $data = htmlspecialchars($data);
   return $data;
+}
+
+function test_number($data) {
+	$data = test_string($data);
+	return $data === "" ? 0 : $data;
+}
+
+function hash_password($password, $salt) {
+	return hash_pbkdf2("sha256", $password, $salt, 10000);
 }
 ?>
 <!DOCTYPE html>
@@ -179,7 +174,7 @@ function test_input($data) {
 </head>
 <body>
 
-<div id="container" class="container-fluid" ng-app="myApp" ng-controller="myCtrl">
+<div class="container-fluid" ng-app="myApp" ng-controller="myCtrl">
 	<div class="row">
 		<div class="page-header">
 			<?php
