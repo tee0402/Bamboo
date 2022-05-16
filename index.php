@@ -1,10 +1,11 @@
 <?php
 session_start();
 
-$mysqlServer = "db5007492839.hosting-data.io";
-$mysqlDb = "dbs6173134";
-$mysqlUsername = "dbu416653";
-$mysqlPassword = "bamboomysqlpassword";
+$configs = include("config/config.php");
+$mysqlServer = $configs["mysqlServer"];
+$mysqlDb = $configs["mysqlDb"];
+$mysqlUsername = $configs["mysqlUsername"];
+$mysqlPassword = $configs["mysqlPassword"];
 
 if (isset($_POST["register"])) {
 	if (isset($_POST["registerEmailAddress"]) && isset($_POST["registerPassword"]) && strlen($_POST["registerPassword"]) >= 8) {
