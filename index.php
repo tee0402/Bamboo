@@ -83,12 +83,13 @@ if (isset($_POST["register"])) {
 } else if (isset($_POST["saveSaving"])) {
 	if (isset($_POST["initialSavings"]) && isset($_POST["annualReturns"]) && isset($_POST["withdrawalRate"]) && isset($_POST["expensesInRetirement"])) {
 		$initialSavings = test_number($_POST["initialSavings"]);
+		$frontLoadAnnualSavings = isset($_POST["frontLoadAnnualSavings"]) ? 1 : 0;
 		$annualReturns = test_number($_POST["annualReturns"]);
 		$withdrawalRate = test_number($_POST["withdrawalRate"]);
 		$expensesInRetirement = test_number($_POST["expensesInRetirement"]);
 		
 		$conn = new PDO("mysql:host=$mysqlServer;dbname=$mysqlDb", $mysqlUsername, $mysqlPassword);
-		$conn->exec("UPDATE Accounts SET InitialSavings=$initialSavings, AnnualReturns=$annualReturns, WithdrawalRate=$withdrawalRate, ExpensesInRetirement=$expensesInRetirement WHERE Email='" . $_SESSION['email'] . "'");
+		$conn->exec("UPDATE Accounts SET InitialSavings=$initialSavings, FrontLoadAnnualSavings=$frontLoadAnnualSavings, AnnualReturns=$annualReturns, WithdrawalRate=$withdrawalRate, ExpensesInRetirement=$expensesInRetirement WHERE Email='" . $_SESSION['email'] . "'");
 		$conn = null;
 	}
 }
@@ -96,7 +97,7 @@ if (isset($_POST["register"])) {
 if (isset($_SESSION["loggedIn"])) {
 	$conn = new PDO("mysql:host=$mysqlServer;dbname=$mysqlDb", $mysqlUsername, $mysqlPassword);
 	
-	$stmt = $conn->prepare("SELECT CurrentAge, TargetRetirementAge, BeginningBalance, AnnualSavings, AnnualSavingsIncreaseRate, ExpectedAnnualReturn, Age50OrOlder, AnnualIncome, MonthlyEssentialExpenses, EmergencyFund, Debt, ContributionsThisYear, Company401kMatch, IRAContributionsThisYear, InitialSavings, AnnualReturns, WithdrawalRate, ExpensesInRetirement FROM Accounts WHERE Email='" . $_SESSION['email'] . "'");
+	$stmt = $conn->prepare("SELECT CurrentAge, TargetRetirementAge, BeginningBalance, AnnualSavings, AnnualSavingsIncreaseRate, ExpectedAnnualReturn, Age50OrOlder, AnnualIncome, MonthlyEssentialExpenses, EmergencyFund, Debt, ContributionsThisYear, Company401kMatch, IRAContributionsThisYear, InitialSavings, FrontLoadAnnualSavings, AnnualReturns, WithdrawalRate, ExpensesInRetirement FROM Accounts WHERE Email='" . $_SESSION['email'] . "'");
 	$stmt->execute();
 	$row = $stmt->fetch();
 	if ($row["CurrentAge"] != null && $row["TargetRetirementAge"] != null && $row["BeginningBalance"] != null && $row["AnnualSavings"] != null && $row["AnnualSavingsIncreaseRate"] != null && $row["ExpectedAnnualReturn"] != null) {
@@ -117,8 +118,9 @@ if (isset($_SESSION["loggedIn"])) {
 		$_SESSION["company401kMatch"] = $row["Company401kMatch"];
 		$_SESSION["iraContributionsThisYear"] = $row["IRAContributionsThisYear"];
 	}
-	if ($row["InitialSavings"] != null && $row["AnnualReturns"] != null && $row["WithdrawalRate"] != null && $row["ExpensesInRetirement"] != null) {
+	if ($row["InitialSavings"] != null && $row["FrontLoadAnnualSavings"] != null && $row["AnnualReturns"] != null && $row["WithdrawalRate"] != null && $row["ExpensesInRetirement"] != null) {
 		$_SESSION["initialSavings"] = $row["InitialSavings"];
+		$_SESSION["frontLoadAnnualSavings"] = $row["FrontLoadAnnualSavings"];
 		$_SESSION["annualReturns"] = $row["AnnualReturns"];
 		$_SESSION["withdrawalRate"] = $row["WithdrawalRate"];
 		$_SESSION["expensesInRetirement"] = $row["ExpensesInRetirement"];
@@ -280,7 +282,7 @@ function hash_password($password, $salt) {
 							<div class="form-group">
 								<label for="currentAge">Current Age:</label>
 								<div class="input-group">
-									<input id="currentAge" type="number" class="form-control" name="currentAge" ng-model="currentAge" ng-change="updateCompounding()" min="0">
+									<input id="currentAge" type="number" class="form-control" name="currentAge" ng-model="currentAge" ng-change="updateCompounding()" min="0" max="{{ targetRetirementAge }}">
 									<span class="input-group-addon">Years</span>
 								</div>
 							</div>
@@ -333,43 +335,39 @@ function hash_password($password, $salt) {
 						</form>
 					</div>
 					<div class="col-md-9">
-						<div id="chart">
-							<canvas id="myChart"></canvas>
-						</div>
+						<canvas id="myChart"></canvas>
 					</div>
 				</div>
 				<br>
 				<div class="row">
-					<div class="panel-group">
-						<div class="panel panel-success">
-							<div id="toggleDiv" class="panel-heading text-center" data-toggle="collapse" data-target="#table" style="cursor:pointer;">
-								<h4 id="toggleText" class="panel-title" style="text-decoration:underline;">Show Calculations</h4>
-							</div>
-							<div id="table" class="panel-collapse collapse">
-								<div class="panel-body">
-									<div class="col-md-3"></div>
-									<div class="col-md-6">
-										<div class="table-responsive">
-											<table class="table table-striped table-bordered table-hover table-condensed">
-												<tr>
-													<th>Age</th>
-													<th>Beginning Balance</th>
-													<th>Interest</th>
-													<th>Savings</th>
-													<th>Ending Balance</th>
-												</tr>
-												<tr ng-repeat="row in tableData">
-													<td>{{ row.age }}</td>
-													<td>{{ row.beginningBalance }}</td>
-													<td>{{ row.interest }}</td>
-													<td>{{ row.savings }}</td>
-													<td>{{ row.endingBalance }}</td>
-												</tr>
-											</table>
-										</div>
+					<div class="panel panel-success">
+						<div id="toggleDiv" class="panel-heading text-center" data-toggle="collapse" data-target="#table" style="cursor:pointer;">
+							<h4 id="toggleText" class="panel-title" style="text-decoration:underline;">Show Calculations</h4>
+						</div>
+						<div id="table" class="panel-collapse collapse">
+							<div class="panel-body">
+								<div class="col-md-3"></div>
+								<div class="col-md-6">
+									<div class="table-responsive">
+										<table class="table table-striped table-bordered table-hover table-condensed">
+											<tr>
+												<th>Age</th>
+												<th>Beginning Balance</th>
+												<th>Interest</th>
+												<th>Savings</th>
+												<th>Ending Balance</th>
+											</tr>
+											<tr ng-repeat="row in tableData">
+												<td>{{ row.age }}</td>
+												<td>{{ row.beginningBalance }}</td>
+												<td>{{ row.interest }}</td>
+												<td>{{ row.savings }}</td>
+												<td>{{ row.endingBalance }}</td>
+											</tr>
+										</table>
 									</div>
-									<div class="col-md-3"></div>
 								</div>
+								<div class="col-md-3"></div>
 							</div>
 						</div>
 					</div>
@@ -429,7 +427,7 @@ function hash_password($password, $salt) {
 								</div>
 							</div>
 							<div class="form-group">
-								<label for="401kContributionsThisYear">401(k) Contributions This Year:</label>
+								<label for="contributionsThisYear">401(k) Contributions This Year:</label>
 								<div class="input-group">
 									<span class="input-group-addon"><i class="glyphicon glyphicon-usd"></i></span>
 									<input id="contributionsThisYear" type="number" class="form-control" name="contributionsThisYear" ng-model="contributionsThisYear" ng-change="updateSpending()" min="0">
@@ -526,6 +524,16 @@ function hash_password($password, $salt) {
 									</div>
 								</div>
 								<div class="form-group">
+									<label for="frontLoadAnnualSavings">Front-Load Annual Savings?</label>
+									<a data-toggle="tooltip" title="Put annual savings into accounts at the beginning of the year instead of the end of the year"><span class="glyphicon glyphicon-info-sign"></span></a>
+									<div style="margin-bottom:-10px;">
+										<label class="switch">
+											<input id="frontLoadAnnualSavings" type="checkbox" class="form-control" name="frontLoadAnnualSavings" ng-model="frontLoadAnnualSavings" ng-change="updateSaving()">
+											<span class="slider round"></span>
+										</label>
+									</div>
+								</div>
+								<div class="form-group">
 									<label for="annualReturns">Annual Returns:</label>
 									<a data-toggle="tooltip" title="This assumes that you invest all your savings. The annualized inflation-adjusted total returns of the S&P 500 since 1926 is about 7%"><span class="glyphicon glyphicon-info-sign"></span></a>
 									<div class="input-group">
@@ -581,15 +589,13 @@ const company401kContributionsLimit50OrOlder = 27000;
 const iraContributionsLimitUnder50 = 6000;
 const iraContributionsLimit50OrOlder = 7000;
 
-<?php
-if (isset($registerError) || isset($loginError)) {
-	echo "$(document).ready(function() {
-		$('#login').modal('show');
-	});";
-}
-?>
-
 $(document).ready(() => {
+	<?php
+	if (isset($registerError) || isset($loginError)) {
+		echo "$('#login').modal('show');";
+	}
+	?>
+
     $('[data-toggle="tooltip"]').tooltip();
 	
 	$("#toggleDiv").click(() => $("#toggleText").text($("#table").is(":visible") ? "Show Calculations" : "Hide Calculations"));
@@ -617,6 +623,7 @@ app.controller('myCtrl', ($scope) => {
 	$scope.iraContributionsThisYear = <?php echo isset($_SESSION["iraContributionsThisYear"]) ? $_SESSION["iraContributionsThisYear"] : 0 ?>;
 	$scope.savingsRate = <?php echo isset($_SESSION["savingsRate"]) ? $_SESSION["savingsRate"] : 5 ?>;
 	$scope.initialSavings = <?php echo isset($_SESSION["initialSavings"]) ? $_SESSION["initialSavings"] : 0 ?>;
+	$scope.frontLoadAnnualSavings = <?php echo isset($_SESSION["frontLoadAnnualSavings"]) ? ($_SESSION["frontLoadAnnualSavings"] == 1 ? "true" : "false") : "false" ?>;
 	$scope.annualReturns = <?php echo isset($_SESSION["annualReturns"]) ? $_SESSION["annualReturns"] : 5 ?>;
 	$scope.withdrawalRate = <?php echo isset($_SESSION["withdrawalRate"]) ? $_SESSION["withdrawalRate"] : 4 ?>;
 	$scope.expensesInRetirement = <?php echo isset($_SESSION["expensesInRetirement"]) ? $_SESSION["expensesInRetirement"] : 100 ?>;
@@ -629,6 +636,7 @@ app.controller('myCtrl', ($scope) => {
 		const expectedAnnualReturn = $scope.expectedAnnualReturn / 100;
 		for (let age = $scope.currentAge; age <= $scope.targetRetirementAge; age++) {
 			const interest = beginningBalance * expectedAnnualReturn;
+			const endingBalance = beginningBalance + interest + annualSavings;
 			chartLabels.push(age);
 			chartData.push(beginningBalance.toFixed(2));
 			tableData.push({
@@ -636,14 +644,15 @@ app.controller('myCtrl', ($scope) => {
 				beginningBalance: formatCurrency(beginningBalance),
 				interest: formatCurrency(interest),
 				savings: formatCurrency(annualSavings),
-				endingBalance: formatCurrency(beginningBalance + interest + annualSavings)
+				endingBalance: formatCurrency(endingBalance)
 			});
-			if (age == $scope.targetRetirementAge) {
-				$scope.endingBalance = formatCurrency(beginningBalance);
-				$scope.annualInterest = formatCurrency(interest);
-			}
-			beginningBalance += interest + annualSavings;
-			annualSavings = annualSavings * (1 + $scope.annualSavingsIncreaseRate / 100);
+			beginningBalance = endingBalance;
+			annualSavings *= 1 + $scope.annualSavingsIncreaseRate / 100;
+		}
+		if (tableData.length > 0) {
+			const lastRow = tableData[tableData.length - 1];
+			$scope.endingBalance = lastRow.beginningBalance;
+			$scope.annualInterest = lastRow.interest;
 		}
 		chart.data.labels = chartLabels;
 		chart.data.datasets[0].data = chartData;
@@ -651,6 +660,8 @@ app.controller('myCtrl', ($scope) => {
 		$scope.tableData = tableData;
 	};
 	$scope.updateSpending = () => {
+		let cash = $scope.annualIncome - $scope.monthlyEssentialExpenses * 12;
+
 		if ($scope.monthlyEssentialExpenses > 0) {
 			$("#essentialExpenses").show(200);
 		} else {
@@ -658,49 +669,33 @@ app.controller('myCtrl', ($scope) => {
 		}
 		
 		const idealEmergencyFund = $scope.monthlyEssentialExpenses * 6;
-		let cash = $scope.annualIncome - $scope.monthlyEssentialExpenses * 12;
-		if ($scope.emergencyFund >= idealEmergencyFund) {
+		if (cash > 0 && $scope.emergencyFund < idealEmergencyFund) {
+			const emergencyFundTopOff = idealEmergencyFund - $scope.emergencyFund;
+			$scope.emergencyFundContributions = cash >= emergencyFundTopOff ? emergencyFundTopOff : cash;
+			$("#emergencyFundContributions").show(200);
+		} else {
 			$scope.emergencyFundContributions = 0;
 			$("#emergencyFundContributions").hide(200);
-		} else {
-			if (cash > 0) {
-				const emergencyFundTopOff = idealEmergencyFund - $scope.emergencyFund;
-				$scope.emergencyFundContributions = cash >= emergencyFundTopOff ? emergencyFundTopOff : cash;
-				$("#emergencyFundContributions").show(200);
-			} else {
-				$scope.emergencyFundContributions = 0;
-				$("#emergencyFundContributions").hide(200);
-			}
 		}
 		cash -= $scope.emergencyFundContributions;
 		$scope.emergencyFundContributions = formatCurrency($scope.emergencyFundContributions);
 		
 		const company401kMatch = $scope.annualIncome * ($scope.company401kMatch / 100);
-		if ($scope.contributionsThisYear >= company401kMatch) {
+		if (cash > 0 && $scope.contributionsThisYear < company401kMatch) {
+			const company401kMatchTopOff = company401kMatch - $scope.contributionsThisYear;
+			$scope.company401kMatchContributions = cash >= company401kMatchTopOff ? company401kMatchTopOff : cash;
+			$("#company401kMatchContributions").show(200);
+		} else {
 			$scope.company401kMatchContributions = 0;
 			$("#company401kMatchContributions").hide(200);
-		} else {
-			if (cash > 0) {
-				const company401kMatchTopOff = company401kMatch - $scope.contributionsThisYear;
-				$scope.company401kMatchContributions = cash >= company401kMatchTopOff ? company401kMatchTopOff : cash;
-				$("#company401kMatchContributions").show(200);
-			} else {
-				$scope.company401kMatchContributions = 0;
-				$("#company401kMatchContributions").hide(200);
-			}
 		}
 		const totalCompany401kContributions = $scope.contributionsThisYear + $scope.company401kMatchContributions;
 		cash -= $scope.company401kMatchContributions;
 		$scope.company401kMatchContributions = formatCurrency($scope.company401kMatchContributions);
 		
-		if ($scope.debt > 0) {
-			if (cash > 0) {
-				$scope.debtContributions = cash >= $scope.debt ? $scope.debt : cash;
-				$("#debtContributions").show(200);
-			} else {
-				$scope.debtContributions = 0;
-				$("#debtContributions").hide(200);
-			}
+		if (cash > 0 && $scope.debt > 0) {
+			$scope.debtContributions = cash >= $scope.debt ? $scope.debt : cash;
+			$("#debtContributions").show(200);
 		} else {
 			$scope.debtContributions = 0;
 			$("#debtContributions").hide(200);
@@ -709,47 +704,35 @@ app.controller('myCtrl', ($scope) => {
 		$scope.debtContributions = formatCurrency($scope.debtContributions);
 		
 		const iraContributionsLimit = $scope.age50OrOlder ? iraContributionsLimit50OrOlder : iraContributionsLimitUnder50;
-		if ($scope.iraContributionsThisYear >= iraContributionsLimit) {
+		if (cash > 0 && $scope.iraContributionsThisYear < iraContributionsLimit) {
+			const iraTopOff = iraContributionsLimit - $scope.iraContributionsThisYear;
+			$scope.iraContributions = cash >= iraTopOff ? iraTopOff : cash;
+			$("#iraContributions").show(200);
+		} else {
 			$scope.iraContributions = 0;
 			$("#iraContributions").hide(200);
-		} else {
-			if (cash > 0) {
-				const iraTopOff = iraContributionsLimit - $scope.iraContributionsThisYear;
-				$scope.iraContributions = cash >= iraTopOff ? iraTopOff : cash;
-				$("#iraContributions").show(200);
-			} else {
-				$scope.iraContributions = 0;
-				$("#iraContributions").hide(200);
-			}
 		}
 		cash -= $scope.iraContributions;
 		$scope.iraContributions = formatCurrency($scope.iraContributions);
 		
 		const company401kContributionsLimit = $scope.age50OrOlder ? company401kContributionsLimit50OrOlder : company401kContributionsLimitUnder50;
-		if (totalCompany401kContributions >= company401kContributionsLimit) {
+		if (cash > 0 && totalCompany401kContributions < company401kContributionsLimit) {
+			const company401kTopOff = company401kContributionsLimit - totalCompany401kContributions;
+			$scope.company401kContributions = cash >= company401kTopOff ? company401kTopOff : cash;
+			$("#company401kContributions").show(200);
+		} else {
 			$scope.company401kContributions = 0;
 			$("#company401kContributions").hide(200);
-		} else {
-			if (cash > 0) {
-				const company401kTopOff = company401kContributionsLimit - totalCompany401kContributions;
-				$scope.company401kContributions = cash >= company401kTopOff ? company401kTopOff : cash;
-				$("#company401kContributions").show(200);
-			} else {
-				$scope.company401kContributions = 0;
-				$("#company401kContributions").hide(200);
-			}
 		}
 		cash -= $scope.company401kContributions;
 		$scope.company401kContributions = formatCurrency($scope.company401kContributions);
 		
+		$scope.cash = formatCurrency(cash);
 		if (cash > 0) {
-			$scope.cash = cash;
 			$("#cash").show(200);
 		} else {
-			$scope.cash = 0;
 			$("#cash").hide(200);
 		}
-		$scope.cash = formatCurrency($scope.cash);
 	};
 	$scope.updateSaving = () => {
 		$scope.savingsRateText = $scope.savingsRate + "%";
@@ -761,11 +744,15 @@ app.controller('myCtrl', ($scope) => {
 			let portfolioValue = $scope.initialSavings / 100 * savings;
 			const annualReturns = $scope.annualReturns / 100;
 			const withdrawalRate = $scope.withdrawalRate / 100;
-			let withdrawal = 0;
+			let withdrawal = portfolioValue * withdrawalRate;
 			let yearsToRetirement = 0;
 			while (withdrawal < expenses) {
-				portfolioValue += savings;
-				portfolioValue += portfolioValue * annualReturns;
+				if ($scope.frontLoadAnnualSavings) {
+					portfolioValue += savings;
+					portfolioValue += portfolioValue * annualReturns;
+				} else {
+					portfolioValue += portfolioValue * annualReturns + savings;
+				}
 				withdrawal = portfolioValue * withdrawalRate;
 				yearsToRetirement++;
 			}
