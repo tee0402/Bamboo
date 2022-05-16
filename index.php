@@ -30,11 +30,14 @@ if (isset($_POST["register"])) {
 		$email = test_string($_POST["loginEmailAddress"]);
 		$password = test_string($_POST["loginPassword"]);
 		
-		$conn = new PDO("mysql:host=$mysqlServer;dbname=$mysqlDb", $mysqlUsername, $mysqlPassword);
-	
-		$stmt = $conn->prepare("SELECT Password, Salt FROM Accounts WHERE Email='$email'");
-		$stmt->execute();
-		$row = $stmt->fetch();
+		try {
+			$conn = new PDO("mysql:host=$mysqlServer;dbname=$mysqlDb", $mysqlUsername, $mysqlPassword);
+			$stmt = $conn->prepare("SELECT Password, Salt FROM Accounts WHERE Email='$email'");
+			$stmt->execute();
+			$row = $stmt->fetch();
+		} catch (PDOException $e) {
+			$loginError = "Database access error";
+		}
 	
 		$hashTry = $hashActual = "";
 		if ($row !== false && $stmt->rowCount() === 1) {
@@ -62,9 +65,13 @@ if (isset($_POST["register"])) {
 		$annualSavingsIncreaseRate = test_number($_POST["annualSavingsIncreaseRate"]);
 		$expectedAnnualReturn = test_number($_POST["expectedAnnualReturn"]);
 		
-		$conn = new PDO("mysql:host=$mysqlServer;dbname=$mysqlDb", $mysqlUsername, $mysqlPassword);
-		$conn->exec("UPDATE Accounts SET CurrentAge=$currentAge, TargetRetirementAge=$targetRetirementAge, BeginningBalance=$beginningBalance, AnnualSavings=$annualSavings, AnnualSavingsIncreaseRate=$annualSavingsIncreaseRate, ExpectedAnnualReturn=$expectedAnnualReturn WHERE Email='" . $_SESSION['email'] . "'");
-		$conn = null;
+		try {
+			$conn = new PDO("mysql:host=$mysqlServer;dbname=$mysqlDb", $mysqlUsername, $mysqlPassword);
+			$conn->exec("UPDATE Accounts SET CurrentAge=$currentAge, TargetRetirementAge=$targetRetirementAge, BeginningBalance=$beginningBalance, AnnualSavings=$annualSavings, AnnualSavingsIncreaseRate=$annualSavingsIncreaseRate, ExpectedAnnualReturn=$expectedAnnualReturn WHERE Email='" . $_SESSION['email'] . "'");
+			$conn = null;
+		} catch (PDOException $e) {
+			$loginError = "Database access error";
+		}
 	}
 } else if (isset($_POST["saveSpending"])) {
 	if (isset($_POST["annualIncome"]) && isset($_POST["monthlyEssentialExpenses"]) && isset($_POST["emergencyFund"]) && isset($_POST["debt"]) && isset($_POST["contributionsThisYear"]) && isset($_POST["company401kMatch"]) && isset($_POST["iraContributionsThisYear"])) {
@@ -77,9 +84,13 @@ if (isset($_POST["register"])) {
 		$company401kMatch = test_number($_POST["company401kMatch"]);
 		$iraContributionsThisYear = test_number($_POST["iraContributionsThisYear"]);
 		
-		$conn = new PDO("mysql:host=$mysqlServer;dbname=$mysqlDb", $mysqlUsername, $mysqlPassword);
-		$conn->exec("UPDATE Accounts SET Age50OrOlder=$age50OrOlder, AnnualIncome=$annualIncome, MonthlyEssentialExpenses=$monthlyEssentialExpenses, EmergencyFund=$emergencyFund, Debt=$debt, ContributionsThisYear=$contributionsThisYear, Company401kMatch=$company401kMatch, IRAContributionsThisYear=$iraContributionsThisYear WHERE Email='" . $_SESSION['email'] . "'");
-		$conn = null;
+		try {
+			$conn = new PDO("mysql:host=$mysqlServer;dbname=$mysqlDb", $mysqlUsername, $mysqlPassword);
+			$conn->exec("UPDATE Accounts SET Age50OrOlder=$age50OrOlder, AnnualIncome=$annualIncome, MonthlyEssentialExpenses=$monthlyEssentialExpenses, EmergencyFund=$emergencyFund, Debt=$debt, ContributionsThisYear=$contributionsThisYear, Company401kMatch=$company401kMatch, IRAContributionsThisYear=$iraContributionsThisYear WHERE Email='" . $_SESSION['email'] . "'");
+			$conn = null;
+		} catch (PDOException $e) {
+			$loginError = "Database access error";
+		}
 	}
 } else if (isset($_POST["saveSaving"])) {
 	if (isset($_POST["initialSavings"]) && isset($_POST["annualReturns"]) && isset($_POST["withdrawalRate"]) && isset($_POST["expensesInRetirement"])) {
@@ -89,18 +100,25 @@ if (isset($_POST["register"])) {
 		$withdrawalRate = test_number($_POST["withdrawalRate"]);
 		$expensesInRetirement = test_number($_POST["expensesInRetirement"]);
 		
-		$conn = new PDO("mysql:host=$mysqlServer;dbname=$mysqlDb", $mysqlUsername, $mysqlPassword);
-		$conn->exec("UPDATE Accounts SET InitialSavings=$initialSavings, FrontLoadAnnualSavings=$frontLoadAnnualSavings, AnnualReturns=$annualReturns, WithdrawalRate=$withdrawalRate, ExpensesInRetirement=$expensesInRetirement WHERE Email='" . $_SESSION['email'] . "'");
-		$conn = null;
+		try {
+			$conn = new PDO("mysql:host=$mysqlServer;dbname=$mysqlDb", $mysqlUsername, $mysqlPassword);
+			$conn->exec("UPDATE Accounts SET InitialSavings=$initialSavings, FrontLoadAnnualSavings=$frontLoadAnnualSavings, AnnualReturns=$annualReturns, WithdrawalRate=$withdrawalRate, ExpensesInRetirement=$expensesInRetirement WHERE Email='" . $_SESSION['email'] . "'");
+			$conn = null;
+		} catch (PDOException $e) {
+			$loginError = "Database access error";
+		}
 	}
 }
 
 if (isset($_SESSION["loggedIn"])) {
-	$conn = new PDO("mysql:host=$mysqlServer;dbname=$mysqlDb", $mysqlUsername, $mysqlPassword);
-	
-	$stmt = $conn->prepare("SELECT CurrentAge, TargetRetirementAge, BeginningBalance, AnnualSavings, AnnualSavingsIncreaseRate, ExpectedAnnualReturn, Age50OrOlder, AnnualIncome, MonthlyEssentialExpenses, EmergencyFund, Debt, ContributionsThisYear, Company401kMatch, IRAContributionsThisYear, InitialSavings, FrontLoadAnnualSavings, AnnualReturns, WithdrawalRate, ExpensesInRetirement FROM Accounts WHERE Email='" . $_SESSION['email'] . "'");
-	$stmt->execute();
-	$row = $stmt->fetch();
+	try {
+		$conn = new PDO("mysql:host=$mysqlServer;dbname=$mysqlDb", $mysqlUsername, $mysqlPassword);
+		$stmt = $conn->prepare("SELECT CurrentAge, TargetRetirementAge, BeginningBalance, AnnualSavings, AnnualSavingsIncreaseRate, ExpectedAnnualReturn, Age50OrOlder, AnnualIncome, MonthlyEssentialExpenses, EmergencyFund, Debt, ContributionsThisYear, Company401kMatch, IRAContributionsThisYear, InitialSavings, FrontLoadAnnualSavings, AnnualReturns, WithdrawalRate, ExpensesInRetirement FROM Accounts WHERE Email='" . $_SESSION['email'] . "'");
+		$stmt->execute();
+		$row = $stmt->fetch();
+	} catch (PDOException $e) {
+		$loginError = "Database access error";
+	}
 	if ($row["CurrentAge"] != null && $row["TargetRetirementAge"] != null && $row["BeginningBalance"] != null && $row["AnnualSavings"] != null && $row["AnnualSavingsIncreaseRate"] != null && $row["ExpectedAnnualReturn"] != null) {
 		$_SESSION["currentAge"] = $row["CurrentAge"];
 		$_SESSION["targetRetirementAge"] = $row["TargetRetirementAge"];
