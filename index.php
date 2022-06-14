@@ -6,6 +6,10 @@ $mysqlServer = $configs["mysqlServer"];
 $mysqlDb = $configs["mysqlDb"];
 $mysqlUsername = $configs["mysqlUsername"];
 $mysqlPassword = $configs["mysqlPassword"];
+$fredAPI = $configs["fredAPI"];
+
+$json = file_get_contents($fredAPI);
+$decodedJson = json_decode($json);
 
 if (isset($_POST["register"])) {
 	if (isset($_POST["registerEmailAddress"]) && isset($_POST["registerPassword"]) && strlen($_POST["registerPassword"]) >= 8) {
@@ -523,7 +527,7 @@ function hash_password($password, $salt) {
 				</div>
 				<div class="row text-center">
 					<label for="savingsRate" style="font-size:1.25em;">Savings Rate</label>
-					<a data-toggle="tooltip" title="The percentage of annual income that is saved. The current U.S. personal savings rate is 6.2%"><span class="glyphicon glyphicon-info-sign"></span></a>
+					<a data-toggle="tooltip" title="The percentage of annual income that is saved. The current U.S. personal savings rate is <?php echo $decodedJson->observations[0]->value;?>%"><span class="glyphicon glyphicon-info-sign"></span></a>
 					<h1 id="savingsRateText" style="color:#99bc20; margin-top:0px; margin-bottom:15px;">{{ savingsRateText }}</h1>
 					<input id="savingsRate" type="range" ng-model="savingsRate" ng-change="updateSaving()">
 					<label for="yearsToRetirement" style="margin-top:20px; font-size:1.875em;">Years to Retirement</label>
